@@ -1,0 +1,19 @@
+---
+cat_api: []
+  x_api_key: "live_6IOX2x8pcxzpj8Srn1yZd7fW6UkSQafmdkb2uotdYThMb5kR6qYKu74iGCiIMQvV8"
+  url: api.thecatapi.com/v1/images/search
+  code: 
+  resources:
+    - https://developers.thecatapi.com/view-account/ylX4blBYT9FaoVd6OhvR?report=bOoHBz-8t
+    - 
+
+
+  dog_api: 
+    x-api-key:
+    url: api.thedogapi.com
+    code:
+    resources:
+      - ...
+      - ...
+
+    

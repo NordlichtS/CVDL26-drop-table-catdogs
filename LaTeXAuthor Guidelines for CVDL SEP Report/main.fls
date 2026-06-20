@@ -1,9 +1,9 @@
-PWD /home/souschen/coding/SEP_Computer_Vision_and_Deep_Learning/SEP_Jan_Marc_Gerry_Ivan_Final_Project/CVDL26-drop-table-catdogs/LaTeXAuthor Guidelines for CVDL SEP Report
+PWD /home/souschen/coding/SEP_Computer_Vision_and_Deep_Learning/CVDL26-drop-table-catdogs/LaTeXAuthor Guidelines for CVDL SEP Report
 INPUT /etc/texmf/web2c/texmf.cnf
 INPUT /usr/share/texmf/web2c/texmf.cnf
 INPUT /usr/share/texlive/texmf-dist/web2c/texmf.cnf
 INPUT /var/lib/texmf/web2c/pdftex/pdflatex.fmt
-INPUT /home/souschen/coding/SEP_Computer_Vision_and_Deep_Learning/SEP_Jan_Marc_Gerry_Ivan_Final_Project/CVDL26-drop-table-catdogs/LaTeXAuthor Guidelines for CVDL SEP Report/main.tex
+INPUT /home/souschen/coding/SEP_Computer_Vision_and_Deep_Learning/CVDL26-drop-table-catdogs/LaTeXAuthor Guidelines for CVDL SEP Report/main.tex
 OUTPUT main.log
 INPUT /usr/share/texlive/texmf-dist/tex/latex/base/article.cls
 INPUT /usr/share/texlive/texmf-dist/tex/latex/base/article.cls

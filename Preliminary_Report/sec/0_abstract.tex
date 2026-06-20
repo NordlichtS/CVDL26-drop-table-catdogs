@@ -1,5 +1,15 @@
 \begin{abstract}
-The ABSTRACT is to be in fully justified italicized text, at the top of the left-hand column and below the author.
-The abstract is to be in 10-point, single-spaced type.
-Leave two blank lines after the Abstract, then begin the main text.
+This Project focuses on a 21-way-classification task to recognice 20 Cat- and Dogbreeds as well as one rejection-class for confounders.
+The main challenge for us is in training the modell as well as ignore background noise. We mainly focused on 
+a) detecting animals overall with a proper of the shelf detector and b1) running our pre-trained modell to define if it is
+even a cat or dog and while doing this, b2) identifying which breed it belongs to.
+This Preliminary Report summs up our first research to Data, Literatur, how to train our modell and how we plan to work together as a team as well 
+as to clarify which tools we want to focus on.
+Our proposed pipeline, implemented in PyTorch, will feature a baseline CNN trained from scratch to satisfy the core 
+project requirements. To further enhance performance, we explore advanced strategies including transfer learning 
+with state-of-the-art architectures (e.g., ResNet) and the integration of pre-trained object detectors for precise 
+animal localization. Model performance will be rigorously evaluated using macro-averaged F1-scores, 
+while model interpretability and decision-making drivers will be analyzed using Explainable AI (xAI) techniques 
+such as Grad-CAM. Finally, a coarse project timeline and training strategy are established to ensure an inference 
+time well below the 5-second threshold.
 \end{abstract}

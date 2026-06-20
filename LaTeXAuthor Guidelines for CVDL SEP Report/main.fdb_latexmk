@@ -1,15 +1,15 @@
 # Fdb version 4
-["bibtex main"] 1781774326.24639 "main.aux" "main.bbl" "main" 1781774827.4157 0
+["bibtex main"] 1781774326.24639 "main.aux" "main.bbl" "main" 1781890777.46011 0
   "./ieeenat_fullname.bst" 1750657860 26900 a296cb1ebee73f7bfa143751dc4e1dfd ""
   "./main.bib" 1750657860 2971 4d6cb2afc0a46aea1e444edcdaea4e6a ""
-  "main.aux" 1781774827.29083 4738 589573e6d8f9270dd74a061f9d1be7cf "pdflatex"
+  "main.aux" 1781890777.36502 4738 589573e6d8f9270dd74a061f9d1be7cf "pdflatex"
   (generated)
   "main.bbl"
   "main.blg"
   (rewritten before read)
-["pdflatex"] 1781774826.57425 "/home/souschen/coding/SEP_Computer_Vision_and_Deep_Learning/SEP_Jan_Marc_Gerry_Ivan_Final_Project/CVDL26-drop-table-catdogs/LaTeXAuthor Guidelines for CVDL SEP Report/main.tex" "main.pdf" "main" 1781774827.416 0
+["pdflatex"] 1781890776.72921 "/home/souschen/coding/SEP_Computer_Vision_and_Deep_Learning/CVDL26-drop-table-catdogs/LaTeXAuthor Guidelines for CVDL SEP Report/main.tex" "main.pdf" "main" 1781890777.46034 0
   "/etc/texmf/web2c/texmf.cnf" 1776610673.28382 475 c0e671620eb5563b2130f56340a5fde8 ""
-  "/home/souschen/coding/SEP_Computer_Vision_and_Deep_Learning/SEP_Jan_Marc_Gerry_Ivan_Final_Project/CVDL26-drop-table-catdogs/LaTeXAuthor Guidelines for CVDL SEP Report/main.tex" 1781774826.33285 1597 a2a73ea54ddf439b5253f0315d59aa96 ""
+  "/home/souschen/coding/SEP_Computer_Vision_and_Deep_Learning/CVDL26-drop-table-catdogs/LaTeXAuthor Guidelines for CVDL SEP Report/main.tex" 1781774826.33285 1597 a2a73ea54ddf439b5253f0315d59aa96 ""
   "/usr/share/texlive/texmf-dist/fonts/enc/dvips/base/8r.enc" 1165713224 4850 80dc9bab7f31fb78a000ccfed0e27cab ""
   "/usr/share/texlive/texmf-dist/fonts/map/fontname/texfonts.map" 1577235249 3524 cb3e574dea2d1052e39280babc910dc8 ""
   "/usr/share/texlive/texmf-dist/fonts/tfm/adobe/courier/pcrr7t.tfm" 1136768653 960 379cc0019370a9e0208a0a3f949f847a ""
@@ -138,10 +138,10 @@
   "/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map" 1781765407.23799 128028 f533b797fba58d231669ea19e894e23e ""
   "/var/lib/texmf/web2c/pdftex/pdflatex.fmt" 1781765432 6800788 f134dceb853c04f4324319f41c45fd43 ""
   "cvpr.sty" 1750657860 21928 76d228f63bfb1f5397d70feff770bf86 ""
-  "main.aux" 1781774827.29083 4738 589573e6d8f9270dd74a061f9d1be7cf "pdflatex"
+  "main.aux" 1781890777.36502 4738 589573e6d8f9270dd74a061f9d1be7cf "pdflatex"
   "main.bbl" 1781774326.27506 1219 052c93acff98265f33afe5a95f1c0001 "bibtex main"
-  "main.brf" 1781774827.29183 144 354f2c09004d875c01edbbed60e911a8 "pdflatex"
-  "main.out" 1781774827.29183 1801 4e3d56f16a754db6a822589fe5e2f8b5 "pdflatex"
+  "main.brf" 1781890777.36502 144 354f2c09004d875c01edbbed60e911a8 "pdflatex"
+  "main.out" 1781890777.36502 1801 4e3d56f16a754db6a822589fe5e2f8b5 "pdflatex"
   "main.tex" 1781774826.33285 1597 a2a73ea54ddf439b5253f0315d59aa96 ""
   "preamble.tex" 1750657860 283 d6fb6e47acbd150088c4eec8eefbc415 ""
   "sec/0_abstract.tex" 1750657860 269 d9e10d2569d098c97d182d5c52bba0c5 ""

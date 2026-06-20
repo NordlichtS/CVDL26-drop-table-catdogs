@@ -26,6 +26,22 @@ share/python-wheels/
 *.egg
 MANIFEST
 
+# LaTeX temporary/build files
+*.aux
+*.fdb_latexmk
+*.fls
+*.synctex.gz
+*.bbl
+*.blg
+*.brf
+*.out
+*.toc
+*.log
+
+# Optional: Ignore the generated PDF if you don't want to track it
+# (Highly recommended, as PDFs change with every single compilation)
+*.pdf
+
 # PyInstaller
 #   Usually these files are written by a python script from a template
 #   before PyInstaller builds the exe, so as to inject date/other infos into it.

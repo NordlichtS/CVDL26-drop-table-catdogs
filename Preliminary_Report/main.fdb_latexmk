@@ -1,15 +1,15 @@
 # Fdb version 4
-["bibtex main"] 1781890752.3848 "main.aux" "main.bbl" "main" 1781940846.06985 0
+["bibtex main"] 1781890752.3848 "main.aux" "main.bbl" "main" 1781943135.12778 0
   "./ieeenat_fullname.bst" 1781775021.96791 26900 a296cb1ebee73f7bfa143751dc4e1dfd ""
   "./main.bib" 1781775022.06791 2971 4d6cb2afc0a46aea1e444edcdaea4e6a ""
-  "main.aux" 1781940845.97283 4738 119f44c9cdba9656f11f4aaf5da7b56f "pdflatex"
+  "main.aux" 1781943135.0734 4738 119f44c9cdba9656f11f4aaf5da7b56f "pdflatex"
   (generated)
   "main.bbl"
   "main.blg"
   (rewritten before read)
-["pdflatex"] 1781940845.33335 "/home/souschen/coding/SEP_Computer_Vision_and_Deep_Learning/CVDL26-drop-table-catdogs/Preliminary_Report/main.tex" "main.pdf" "main" 1781940846.07007 0
+["pdflatex"] 1781943134.74539 "/home/souschen/coding/SEP_Computer_Vision_and_Deep_Learning/CVDL26-drop-table-catdogs/Preliminary_Report/main.tex" "main.pdf" "main" 1781943135.12791 0
   "/etc/texmf/web2c/texmf.cnf" 1776610673.28382 475 c0e671620eb5563b2130f56340a5fde8 ""
-  "/home/souschen/coding/SEP_Computer_Vision_and_Deep_Learning/CVDL26-drop-table-catdogs/Preliminary_Report/main.tex" 1781940845.18183 1599 d34cd9b864b536e733e0b62434ee676f ""
+  "/home/souschen/coding/SEP_Computer_Vision_and_Deep_Learning/CVDL26-drop-table-catdogs/Preliminary_Report/main.tex" 1781943134.66941 1599 159045c7c6debcebb874814a1baccef5 ""
   "/usr/share/texlive/texmf-dist/fonts/enc/dvips/base/8r.enc" 1165713224 4850 80dc9bab7f31fb78a000ccfed0e27cab ""
   "/usr/share/texlive/texmf-dist/fonts/map/fontname/texfonts.map" 1577235249 3524 cb3e574dea2d1052e39280babc910dc8 ""
   "/usr/share/texlive/texmf-dist/fonts/tfm/adobe/courier/pcrr7t.tfm" 1136768653 960 379cc0019370a9e0208a0a3f949f847a ""
@@ -138,13 +138,13 @@
   "/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map" 1781765407.23799 128028 f533b797fba58d231669ea19e894e23e ""
   "/var/lib/texmf/web2c/pdftex/pdflatex.fmt" 1781765432 6800788 f134dceb853c04f4324319f41c45fd43 ""
   "cvpr.sty" 1781775021.94691 21928 76d228f63bfb1f5397d70feff770bf86 ""
-  "main.aux" 1781940845.97283 4738 119f44c9cdba9656f11f4aaf5da7b56f "pdflatex"
+  "main.aux" 1781943135.0734 4738 119f44c9cdba9656f11f4aaf5da7b56f "pdflatex"
   "main.bbl" 1781890752.4045 1219 052c93acff98265f33afe5a95f1c0001 "bibtex main"
-  "main.brf" 1781940845.97383 144 354f2c09004d875c01edbbed60e911a8 "pdflatex"
-  "main.out" 1781940845.97283 1801 4e3d56f16a754db6a822589fe5e2f8b5 "pdflatex"
-  "main.tex" 1781940845.18183 1599 d34cd9b864b536e733e0b62434ee676f ""
+  "main.brf" 1781943135.0734 144 354f2c09004d875c01edbbed60e911a8 "pdflatex"
+  "main.out" 1781943135.0734 1801 4e3d56f16a754db6a822589fe5e2f8b5 "pdflatex"
+  "main.tex" 1781943134.66941 1599 159045c7c6debcebb874814a1baccef5 ""
   "preamble.tex" 1781775022.4859 283 d6fb6e47acbd150088c4eec8eefbc415 ""
-  "sec/0_abstract.tex" 1781890751.36452 1394 6ab182c7bf70f0ae40fd8365a91844e7 ""
+  "sec/0_abstract.tex" 1781941470.11839 1394 6ab182c7bf70f0ae40fd8365a91844e7 ""
   "sec/1_intro.tex" 1781775021.90291 2252 95a0424847de82a84d9a6ffeb463dda8 ""
   "sec/2_formatting.tex" 1781775021.90391 6861 f730b116b03edf417c3d4d68383b921e ""
   (generated)

@@ -1,0 +1,29 @@
+\section{Detector}
+\label{sec:detector}
+
+%-------------------------------------------------------------------------
+
+
+ \subsection{Detector Selection and Implementation}
+
+To optimize localization speed and accuracy, we initially evaluated Google SpeciesNet \cite{speciesnet2025}, an ensemble architecture highly regarded for its robust handling of challenging environments. 
+SpeciesNet utilizes the MegaDetector framework \cite{megadetector2026} and boasts an impressive 98.6\% empty image exclusion accuracy, effectively filtering out blank "wind-blows" images. 
+However, while the system is highly optimized for batch processing of static, low-quality, poorly lit, or camouflaged trail-camera photographs, empirical testing revealed that its heavy computational 
+overhead consistently exceeded our expectations and the strict 5-second overall inference constraint dictated by the project specifications. Consequently, as outlined in our preliminary report, 
+we proceeded with YOLOv6, a lightweight and highly efficient single-stage object detector \cite{li2022yolov6}.
+
+The selected YOLOv6 model is a standardized architecture pretrained on the comprehensive Common Objects in Context (COCO) dataset. 
+This pretraining allowed us to directly leverage established COCO class identifiers (numeric IDs assigned to different object categories worldwide) to explicitly filter for our target species: 
+cats (class ID 15) and dogs (class ID 16). If the detector identifies neither class, the pipeline immediately forwards the rejection class ($-1$), efficiently bypassing the downstream prediction network. 
+Preliminary inference tests on our dataset demonstrated exceptional localization capabilities, achieving a 100\,\% accuracy rate in correctly identifying the primary subject, which validated this approach 
+for our pipeline.
+
+A significant concern during initial testing was the potential for grouped or closely situated animals to be merged into a single bounding box. This would severely degrade the performance of the subsequent 
+fine-grained classifier, which we trained from scratch, as it would struggle to determine the correct species. However, this concern was scattered during testing with multiple complex pictures, including
+ zoo animals. We observed that YOLOv6 effectively avoids this issue by creating a dedicated bounding box for each individual animal. To strictly adhere to the project's evaluation rules, our algorithm compares
+  the spatial dimensions of all detected bounding boxes and forwards only the largest one.
+
+Furthermore, to ease the representational burden on our prediction model and to eliminate the traits of other animals that may overlap with the forwarded bounding box of the searched animal,
+ we implemented a zero-out masking strategy. In scenarios where smaller animals overlap with the primary subject, the overlapping regions are explicitly blacked out. We see a distinct advantage in 
+ time and accuracy by eliminating the traits of the smaller animals. However, we are aware of the inherent trade-off: this masking strategy could temporarily make it harder for our model to detect 
+ the primary animal, as a large chunk of its visual information might go missing.

@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "animal_recognition"
+version = "0.1.0"
+dependencies = [
+    "pandas",
+    "torch",
+    "pillow",
+    "scikit-learn",
+    "tqdm",
+    "matplotlib",
+    "torchvision",
+    "psutil",
+    "PyYaml"
+]
+
+[tool.setuptools]
+# Hier sagen wir Python explizit, welche Ordner Code enthalten
+packages = ["Final_Project", "AnimalRecognitionChallenge"]

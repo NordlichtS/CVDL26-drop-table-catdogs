@@ -1,0 +1,22 @@
+\section{Training}
+\label{sec:training}
+
+During training with a small subset of data, we realized that we heavily differ from the original 100\% accuracy of the detector, as our dataset of 20 animals per breed was too small. Even though the Cat-API, from which we pulled our data, has a large dataset, the data is not properly labeled, and we could only obtain around 12 pictures per breed. 
+As hand-labeling another eight pictures to reach the target of 20 pictures per breed takes too long, we avoided going forward with this and took our chance with further officially provided datasets. 
+
+Here, we implemented the Oxford Dataset, which increased our pool by 
+2,744 pictures of the animal breeds we needed. However, upon checking, 
+we realized that \textit{Tabby} \& \textit{Tiger\_cat} are very similar, 
+and \textit{Tabby} is not a breed but a fur pattern. In this case, 
+we proceeded with \textit{Tiger\_cat}. Down the line, we recognized 
+that we had too few pictures of \textit{Golden\_Retriever}, 
+\textit{German\_Shepherd}, \textit{Siberian\_Husky}, \textit{Dalmatian}, 
+and \textit{Rottweiler}, as these are not included in the Oxford Dataset. 
+Due to this, we went further and implemented the Stanford Dogs Dataset, 
+which has 150 pictures per specified breed and helped us to finalize our 
+training dataset.
+As we still struggled with tabby and tiger cat, we proceeded just for these breeds
+to pull 30  Pictures from Unsplash.com and Pixabay.com. 
+As we were still unsattisfied with the training results especially for these breeds,
+we increased the density to 50 pictures per breed, which pushed the performance over the 80% accuracy, which we held as our 
+main goal.

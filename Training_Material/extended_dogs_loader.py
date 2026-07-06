@@ -93,7 +93,6 @@ def process_stanford_and_local(target_folder="images", local_cats_folder="local_
     csv_pfad = os.path.join(target_folder, "labels.csv")
     csv_exists = os.path.exists(csv_pfad) and os.path.getsize(csv_pfad) > 0
     
-    classes_lower = [c.lower() for c in CLASSES]
     copied_count = 0
 
     # 3. CSV im Append-Modus ('a') öffnen – wir hängen uns einfach hinten dran
@@ -111,12 +110,18 @@ def process_stanford_and_local(target_folder="images", local_cats_folder="local_
             if not os.path.isdir(folder_path) or '-' not in folder_name:
                 continue
             
-            # Extrahiere den reinen Rassenamen nach dem Bindestrich
+            # Extrahiere den reinen Rassenamen nach dem Bindestrich und kleinschreiben
             breed_part = folder_name.split('-', 1)[1].lower()
             
-            if breed_part in classes_lower:
-                label_id = classes_lower.index(breed_part)
-                print(f"Verarbeite Stanford-Rasse: {CLASSES[label_id]} (Label {label_id})...")
+            # NORMALISIERUNG: Unterstriche und Bindestriche zu Leerzeichen machen
+            breed_part_normalized = breed_part.replace('_', ' ').replace('-', ' ').strip()
+            
+            # Auch deine CLASSES-Suchliste für den Vergleich genau so normalisieren
+            classes_lower_normalized = [c.lower().replace('_', ' ').replace('-', ' ').strip() for c in CLASSES]
+            
+            if breed_part_normalized in classes_lower_normalized:
+                label_id = classes_lower_normalized.index(breed_part_normalized)
+                print(f"✓ Match gefunden! Verarbeite Stanford-Rasse: {CLASSES[label_id]} (Label {label_id})...")
                 
                 for filename in sorted(os.listdir(folder_path)):
                     if not filename.lower().endswith(('.jpg', '.jpeg')):
@@ -132,10 +137,9 @@ def process_stanford_and_local(target_folder="images", local_cats_folder="local_
                         counter += 1
                         copied_count += 1
                     except Exception as e:
-                        print(f"  x Fehler bei {filename}: {e}")
+                        print(f"   x Fehler bei {filename}: {e}")
 
         print("\n--- Schritt 2: Prüfe auf lokale Katzenbilder (Tabby / Tiger_Cat) ---")
-        # Hier wird geschaut, ob du einen Ordner für die "Nicht-Rassen"-Katzen angelegt hast
         for cat_class in ["Tabby", "Tiger_Cat"]:
             cat_folder_path = os.path.join(local_cats_folder, cat_class)
             label_id = CLASSES.index(cat_class)
@@ -156,7 +160,7 @@ def process_stanford_and_local(target_folder="images", local_cats_folder="local_
                         counter += 1
                         copied_count += 1
                     except Exception as e:
-                        print(f"  x Fehler bei lokalem Bild {filename}: {e}")
+                        print(f"   x Fehler bei lokalem Bild {filename}: {e}")
             else:
                 print(f"ℹ️ Kein lokaler Ordner für '{cat_class}' unter '{cat_folder_path}' gefunden. (Übersprungen)")
 
@@ -164,5 +168,4 @@ def process_stanford_and_local(target_folder="images", local_cats_folder="local_
     print(f"Die labels.csv wurde erweitert. Nächster freier Index ist: {counter:05d}.jpg")
 
 if __name__ == "__main__":
-    # Startet die Erweiterung. Standardmäßig wird in den gleichen Ordner "images" geschrieben
     process_stanford_and_local(target_folder="images", local_cats_folder="local_cats")

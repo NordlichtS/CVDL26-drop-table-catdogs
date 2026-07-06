@@ -94,10 +94,6 @@ class AnimalDetector:
         best_box = None
         species = "neither"
 
-        print(f"[DEBUG] YOLO Output-Format: {predictions.shape if hasattr(predictions, 'shape') else 'kein Shape'}")
-        for pred in predictions:
-            print(f"[DEBUG] Gefundene Box/Klasse: {pred}")
-
         for pred in predictions:
             # Sicherheitscheck gegen Metadaten/Zeilenüberschriften
             if isinstance(pred, (str, bytes)) or len(pred) < 5:
@@ -146,7 +142,6 @@ class AnimalDetector:
             # Test ausgabe um das Bild zu überprüfen
             crop_bgr = cv2.cvtColor(resized_crop, cv2.COLOR_RGB2BGR)
             cv2.imwrite("aktueller_crop.jpg", crop_bgr)
-            print("[INFO] Kein Tier erkannt. Fallback-Bild als 'aktueller_crop.jpg' gespeichert.")
             return resized_crop, "neither", None
 
         x1, y1, x2, y2 = best_box
@@ -159,6 +154,4 @@ class AnimalDetector:
         # Das Bild von RGB zurück nach BGR konvertieren, damit OpenCV es richtig speichert
         crop_bgr = cv2.cvtColor(resized_crop, cv2.COLOR_RGB2BGR)
         cv2.imwrite("aktueller_crop.jpg", crop_bgr)
-        print("[INFO] Ausgeschnittenes Bild wurde als 'aktueller_crop.jpg' gespeichert!")
-        cv2.imshow("Vorschau: Ausgeschnittenes Tier (224x224)", crop_bgr)
         return resized_crop, species, {"box": (x1, y1, x2, y2), "orig_dim": (w_orig, h_orig)}

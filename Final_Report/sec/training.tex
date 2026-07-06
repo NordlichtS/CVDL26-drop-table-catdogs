@@ -18,5 +18,9 @@ training dataset.
 As we still struggled with tabby and tiger cat, we proceeded just for these breeds
 to pull 30  Pictures from Unsplash.com and Pixabay.com. 
 As we were still unsattisfied with the training results especially for these breeds,
-we increased the density to 50 pictures per breed, which pushed the performance over the 80% accuracy, which we held as our 
+we increased the density to 50 pictures per breed, which pushed the performance over the 80\% accuracy, which we held as our 
 main goal.
+
+During training we realized that our algorithm was still getting worse from time to time, due to this we verified our picture dataset and realized that dalmatian have been excluded for now 
+of the dataset. As none of the api connections we used earlier had any dalamtian pictures, we donwloaded a file of 359 Dalmatian pictures and included this in our dataset. Through this after 10 Epochs of training we
+had a big jump from 17 to 69\% accuracy.

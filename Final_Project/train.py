@@ -45,6 +45,13 @@ class CroppedAnimalDataset(Dataset):
             try:
                 with torch.no_grad():
                     crop_np, detected_species, meta = self.detector.detect_largest_animal(orig_img_path)
+                    
+                    if isinstance(crop_np, torch.Tensor):
+                        crop_np = crop_np.cpu().detach().numpy()
+                    # Wenn es ein Numpy-Array ist, aber noch auf der GPU-Logik basiert:
+                    elif hasattr(crop_np, 'cpu'):
+                        crop_np = crop_np.cpu().numpy()
+                    
                     crop_image = Image.fromarray(crop_np)
                     crop_image.save(cached_img_path)
             except Exception as e:
@@ -100,7 +107,7 @@ if __name__ == "__main__":
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     print(f"Training läuft auf: {device}")
     
-    batch_size = 32
+    batch_size = 5
     num_epochs = 1
     learning_rate = 0.001
     

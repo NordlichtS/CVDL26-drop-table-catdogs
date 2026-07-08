@@ -200,13 +200,13 @@ if __name__ == "__main__":
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     print(f"Training läuft auf: {device}")
     
-    # KORREKTUR AUS TRAINEFFNET FÜR FROM_SCRATCH = TRUE
+    # Hyperparameter (Hier gerne batch_size=16 und img_size=224 für VRAM-Schonung!)
     batch_size = 16
-    num_epochs = 120       # Erhöht von 15 auf 80, da von Scratch gelernt wird
-    learning_rate = 1e-3  # Höhere Lernrate für Scratch-Training
-    warmup_epochs = 5     # Längerer Warmup für stabile Konvergenz
-    img_size = 224 
-       
+    num_epochs = 80       
+    learning_rate = 1e-3  
+    warmup_epochs = 5     
+    img_size = 224
+    
     img_dir = "images" 
     csv_file = os.path.join(img_dir, "labels.csv")
     detector = AnimalDetector(weights_path='yolov6s.pt', device=device)
@@ -229,45 +229,66 @@ if __name__ == "__main__":
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
 
-    for species in ["cat", "dog"]:
+    # NEU: Die Automatisierungs-Schleife für beide Datensätze nacheinander!
+    # Durchlauf 1: classes_folder = None -> Nutzt deine labels.csv
+    # Durchlauf 2: classes_folder = "./classes" -> Nutzt die Ordner deines Freundes
+    for classes_folder in [None, "./classes"]:
+        
+        mode_text = "EIGENE CSV-DATEN" if classes_folder is None else "ORDNERSTRUKTUR (FREUND)"
+        print(f"\n=======================================================")
+        print(f" STARTE TRAININGSMODUS: {mode_text}")
+        print(f"=======================================================\n")
 
-        classes_folder_path = "./classes"
-        full_dataset = CroppedAnimalDataset(csv_file, img_dir, species=species, detector=detector, transform=train_transform, classes_dir=classes_folder_path)
-        
-        indices = list(range(len(full_dataset)))
-        random.shuffle(indices)
-        split = int(0.8 * len(indices))
-        train_indices, val_indices = indices[:split], indices[split:]
-        
-        train_labels = [int(full_dataset.data.iloc[i, 1]) for i in train_indices]
-        train_labels_mapped = [l if species == "cat" else l - 10 for l in train_labels]
-        counts = Counter(train_labels_mapped)
-        wcls = {c: 1.0 / n for c, n in counts.items()}
-        sample_weights = [wcls[lbl] for lbl in train_labels_mapped]
-        sampler = WeightedRandomSampler(sample_weights, len(sample_weights), replacement=True)
-        
-        train_loader = DataLoader(torch.utils.data.Subset(full_dataset, train_indices), batch_size=batch_size, sampler=sampler, num_workers=0, pin_memory=True)
-        val_loader = DataLoader(torch.utils.data.Subset(CroppedAnimalDataset(csv_file, img_dir, species=species, detector=detector, transform=val_transform), val_indices), batch_size=batch_size, shuffle=False, num_workers=0, pin_memory=True)
-        
-        # PRÜFUNG: Wenn die Datei existiert, lade sie. Wenn nicht, bleibt es bei None (Scratch).
-        expected_weights_file = f"{species}_scratch.pth"
-        weights_to_pass = expected_weights_file if os.path.exists(expected_weights_file) else None
-        
-        model = AnimalClassifier(weights_path=weights_to_pass, num_classes=NUM_CLASSES, device=device)
-        
-        criterion = nn.CrossEntropyLoss(label_smoothing=0.1)
-        optimizer = optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=1e-4)
-        
-        scheduler = optim.lr_scheduler.SequentialLR(
-            optimizer,
-            schedulers=[
-                optim.lr_scheduler.LinearLR(optimizer, start_factor=0.1, total_iters=warmup_epochs),
-                optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_epochs - warmup_epochs),
-            ],
-            milestones=[warmup_epochs],
-        )
-        scaler = torch.amp.GradScaler() if device == "cuda" else None
-        
-        train_model(model, train_loader, val_loader, criterion, optimizer, scheduler, scaler, num_epochs, device, species)
+        for species in ["cat", "dog"]:
+            # Initialisierung des Datasets mit dem flexiblen classes_dir Parameter
+            full_dataset = CroppedAnimalDataset(
+                csv_file, 
+                img_dir, 
+                species=species, 
+                detector=detector, 
+                transform=train_transform,
+                classes_dir=classes_folder
+            )
+            
+            indices = list(range(len(full_dataset)))
+            random.shuffle(indices)
+            split = int(0.8 * len(indices))
+            train_indices, val_indices = indices[:split], indices[split:]
+            
+            # Labels dynamisch auslesen (funktioniert für CSV und folder_mode dank nachgebautem Dataframe)
+            train_labels = [int(full_dataset.data.iloc[i, 1]) for i in train_indices]
+            train_labels_mapped = [l if species == "cat" else l - 10 for l in train_labels]
+            counts = Counter(train_labels_mapped)
+            wcls = {c: 1.0 / n for c, n in counts.items()}
+            sample_weights = [wcls[lbl] for lbl in train_labels_mapped]
+            sampler = WeightedRandomSampler(sample_weights, len(sample_weights), replacement=True)
+            
+            train_loader = DataLoader(torch.utils.data.Subset(full_dataset, train_indices), batch_size=batch_size, sampler=sampler, num_workers=0, pin_memory=True)
+            
+            # Validierungs-Dataset ebenfalls mit classes_folder instanziieren
+            val_dataset_obj = CroppedAnimalDataset(csv_file, img_dir, species=species, detector=detector, transform=val_transform, classes_dir=classes_folder)
+            val_loader = DataLoader(torch.utils.data.Subset(val_dataset_obj, val_indices), batch_size=batch_size, shuffle=False, num_workers=0, pin_memory=True)
+            
+            # AUTOMATISCHER STACK: Wenn im ersten Durchlauf (CSV) "cat_scratch.pth" erzeugt wurde,
+            # lädt der zweite Durchlauf (classes) diese Gewichte automatisch und trainiert darauf weiter!
+            expected_weights_file = f"{species}_scratch.pth"
+            weights_to_pass = expected_weights_file if os.path.exists(expected_weights_file) else None
+            
+            model = AnimalClassifier(weights_path=weights_to_pass, num_classes=NUM_CLASSES, device=device)
+            
+            criterion = nn.CrossEntropyLoss(label_smoothing=0.1)
+            optimizer = optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=1e-4)
+            
+            scheduler = optim.lr_scheduler.SequentialLR(
+                optimizer,
+                schedulers=[
+                    optim.lr_scheduler.LinearLR(optimizer, start_factor=0.1, total_iters=warmup_epochs),
+                    optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_epochs - warmup_epochs),
+                ],
+                milestones=[warmup_epochs],
+            )
+            scaler = torch.amp.GradScaler() if device == "cuda" else None
+            
+            train_model(model, train_loader, val_loader, criterion, optimizer, scheduler, scaler, num_epochs, device, species)
 
-    print("BEIDE SCRATCH-MODELLE BEREIT!")
+    print("\n ALLES ERFOLGREICH BEENDET! BEIDE DATENSÄTZE AUF DEMSELBEN STACK TRAINIERT!")

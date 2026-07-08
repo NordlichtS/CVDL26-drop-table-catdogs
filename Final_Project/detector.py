@@ -83,7 +83,11 @@ class AnimalDetector:
             predictions = raw_output
             
         # Jetzt wie gewohnt zu numpy konvertieren
-        predictions = np.array(predictions)
+        if isinstance(predictions, torch.Tensor):
+            predictions = predictions.cpu().detach().numpy()
+        
+        else:
+            predictions = np.array(predictions)
 
         # Fallback, falls absolut nichts im Bild gefunden wurde
         if predictions is None or len(predictions) == 0:
@@ -120,22 +124,22 @@ class AnimalDetector:
                     best_box = (int(x1), int(y1), int(x2), int(y2))
                     species = "dog" if class_id == self.DOG_CLASS_ID else "cat"
         
-        # zero-out masking of overlapping animals
-        if best_box is not None:
-            for pred in predictions:
-                if isinstance(pred, (str, bytes)) or len(pred) < 4:
-                    continue
-                try:
-                    x1, y1, x2, y2 = pred[:4]
-                    x1, y1, x2, y2 = float(x1), float(y1), float(x2), float(y2)
-                    current_box = (int(x1), int(y1), int(x2), int(y2))
-                    
-                    if current_box != best_box:
-                        cx1, cy1 = max(0, current_box[0]), max(0, current_box[1])
-                        cx2, cy2 = min(w_orig, current_box[2]), min(h_orig, current_box[3])
-                        img_rgb[cy1:cy2, cx1:cx2] = [0, 0, 0]
-                except (ValueError, TypeError):
-                    continue
+#        # zero-out masking of overlapping animals
+#        if best_box is not None:
+#            for pred in predictions:
+#                if isinstance(pred, (str, bytes)) or len(pred) < 4:
+#                    continue
+#                try:
+#                    x1, y1, x2, y2 = pred[:4]
+#                    x1, y1, x2, y2 = float(x1), float(y1), float(x2), float(y2)
+#                    current_box = (int(x1), int(y1), int(x2), int(y2))
+#                    
+#                    if current_box != best_box:
+#                        cx1, cy1 = max(0, current_box[0]), max(0, current_box[1])
+#                        cx2, cy2 = min(w_orig, current_box[2]), min(h_orig, current_box[3])
+#                        img_rgb[cy1:cy2, cx1:cx2] = [0, 0, 0]
+#                except (ValueError, TypeError):
+#                    continue
                         
         if best_box is None:
             resized_crop = cv2.resize(img_rgb, (224, 224))

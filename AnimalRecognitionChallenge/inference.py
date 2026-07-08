@@ -24,18 +24,12 @@ import argparse
 import random
 from pathlib import Path
 
-import pandas as pd
-
 import torch
 torch.serialization.add_safe_globals(["yolov6.models.yolo.Model"])
 import torch.nn as nn
 from PIL import Image
-from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
-from tqdm import tqdm
 
-from Final_Project.detector import AnimalDetector
-from Final_Project.animalClassifier import AnimalClassifier
-from Final_Project.compare_classifier import CompareClassifier
+from Final_Project.models.efficientnetv2_s import EfficientNetV2S
 
 
 REJECT = -1
@@ -67,6 +61,46 @@ CLASSES = [
 NUM_CLASSES = len(CLASSES)
 
 
+def predict_efficientnet_crop(crop_tensor: torch.Tensor, model: nn.Module, device: str = "cpu"):
+    """Predict a class from a cropped animal tensor with a flip fallback.
+
+    The helper expects a crop tensor in CHW or NCHW layout that is already
+    normalized for EfficientNet-style classification.
+    """
+
+    if not torch.is_tensor(crop_tensor):
+        raise TypeError("crop_tensor must be a torch.Tensor")
+
+    model = model.to(device).eval()
+
+    def _predict(input_tensor: torch.Tensor):
+        with torch.no_grad():
+            logits = model(input_tensor)
+            probs = torch.softmax(logits, dim=1)
+            confidence, predicted_idx = torch.max(probs, dim=1)
+            feature_map = getattr(model, "get_last_feature_map", lambda: getattr(model, "last_feature_map", None))()
+        return probs, predicted_idx, confidence, feature_map
+
+    if crop_tensor.dim() == 3:
+        batch_tensor = crop_tensor.unsqueeze(0)
+    elif crop_tensor.dim() == 4:
+        batch_tensor = crop_tensor
+    else:
+        raise ValueError("crop_tensor must have shape [C, H, W] or [N, C, H, W]")
+
+    batch_tensor = batch_tensor.to(device=device, dtype=torch.float32)
+    probs, predicted_idx, confidence, feature_map = _predict(batch_tensor)
+
+    # If the model is uncertain, try a horizontally flipped crop as a fallback.
+    if confidence.item() < 0.5:
+        flipped_tensor = torch.flip(batch_tensor, dims=[-1])
+        flipped_probs, flipped_idx, flipped_confidence, flipped_feature_map = _predict(flipped_tensor)
+        if flipped_confidence.item() >= confidence.item():
+            return flipped_probs, int(flipped_idx.item()), flipped_feature_map
+
+    return probs, int(predicted_idx.item()), feature_map
+
+
 class Model(nn.Module):
     """TODO (students): replace this with your own model.
 
@@ -76,6 +110,10 @@ class Model(nn.Module):
     def __init__(self):
         super().__init__()
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
+        from Final_Project.detector import AnimalDetector
+        from Final_Project.animalClassifier import AnimalClassifier
+        from Final_Project.compare_classifier import CompareClassifier
 
         weights_file = "yolov6s.pt"
         parent_dir_weights = os.path.join("..", "yolov6s.pt")
@@ -160,6 +198,10 @@ class Model(nn.Module):
 
 
 if __name__ == "__main__":
+    import pandas as pd
+    from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+    from tqdm import tqdm
+
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--image-folder", type=Path, default=Path(__file__).resolve().parent / "images")
     args = parser.parse_args()

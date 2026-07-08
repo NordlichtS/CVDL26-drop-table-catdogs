@@ -19,4 +19,4 @@ dependencies = [
 
 [tool.setuptools]
 # Hier sagen wir Python explizit, welche Ordner Code enthalten
-packages = ["Final_Project", "AnimalRecognitionChallenge"]
+packages = ["Final_Project", "Final_Project.models", "AnimalRecognitionChallenge"]

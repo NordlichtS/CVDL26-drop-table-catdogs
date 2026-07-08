@@ -22,6 +22,8 @@ os.environ["TORCH_HUB_TRUST_REPO"] = "1"
 import subprocess
 import argparse
 import random
+import numpy as np
+import time
 from pathlib import Path
 
 import pandas as pd
@@ -113,16 +115,18 @@ class Model(nn.Module):
 
     def forward(self, image: Image.Image) -> int:
         # saving PIL-Image as a temporary File
-        temp_path = "temp_inference_image.jpg"
-        image.save(temp_path)
 
-        try:
-            resized_crop_np, species, meta = self.animal_detector.detect_largest_animal(temp_path)
-
-        finally:
-            if os.path.exists(temp_path):
-                os.remove(temp_path)
         
+        # 1. PIL-Image (RGB) zu Numpy-Array konvertieren
+        image_np = np.array(image)
+        
+        # 2. RGB zu BGR konvertieren (Das Format, das OpenCV/Dein Detektor erwartet)
+        img_bgr = image_np[:, :, ::-1].copy()
+        
+        # 3. Direkt das Array übergeben (keine Festplatte involviert!)
+        resized_crop_np, species, meta = self.animal_detector.detect_largest_animal(img_bgr)
+
+
         if meta is None or species == "neither":
             return REJECT
         
@@ -170,6 +174,9 @@ if __name__ == "__main__":
     model = Model().eval()
 
     y_true, y_pred = [], []
+    
+    start_inf = time.time()
+
     with torch.no_grad():
         for filename, label in tqdm(zip(df["filename"], df["label"]), total=len(df)):
             image = Image.open(args.image_folder / filename).convert("RGB")
@@ -177,6 +184,8 @@ if __name__ == "__main__":
             y_true.append(int(label))
             y_pred.append(int(pred))
 
+    end_inf = time.time()
+    print(f"Durchschnittliche Inferenzzeit pro Bild: {(end_inf - start_inf) / len(df):.4f} Sekunden")
     labels = [REJECT] + list(range(NUM_CLASSES))
     target_names = ["reject(-1)"] + CLASSES
     print(f"\nAccuracy: {accuracy_score(y_true, y_pred):.4f}")

@@ -41,21 +41,23 @@ class AnimalDetector:
             self.DOG_CLASS_ID = 16
 
     
-    def detect_largest_animal(self, image_path):
+    def detect_largest_animal(self, image_input):
         """
-        Liest ein Bild ein, findet das größte Ziel-Tier (Katze/Hund),
-        schneidet es aus, resizet es auf 224x224 und gibt die Metadaten zurück.
+        image_input: Entweder ein Dateipfad (String) ODER direkt ein numpy array (BGR).
         """
-        # Bild mit OpenCV laden
-        img_bgr = cv2.imread(image_path)
-        # Checking
-        cv2.imwrite("Aktuelles Bild.jpg", img_bgr)
-        if img_bgr is None:
-            raise ValueError(f"Bild konnte nicht geladen werden: {image_path}")
+        # Wenn ein Pfad übergeben wird (z.B. fürs Training), lade es
+        if isinstance(image_input, str):
+            img_bgr = cv2.imread(image_input)
+        # Wenn direkt ein Array übergeben wird (Inferenz), nutze es direkt
+        else:
+            img_bgr = image_input
             
+        if img_bgr is None:
+            raise ValueError("Bild ist leer oder konnte nicht geladen werden!")
+
         h_orig, w_orig, _ = img_bgr.shape
         img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
-        
+
         # --- YOLO PREPROCESSING (Wieder aktiv für den Detector Wrapper) ---
         img_resized = cv2.resize(img_rgb, (640, 640))
         img_chw = img_resized.transpose((2, 0, 1))
@@ -147,7 +149,6 @@ class AnimalDetector:
             resized_crop = cv2.resize(img_rgb, (224, 224))
             # Test ausgabe um das Bild zu überprüfen
             crop_bgr = cv2.cvtColor(resized_crop, cv2.COLOR_RGB2BGR)
-            cv2.imwrite("aktueller_crop.jpg", crop_bgr)
             return resized_crop, "neither", None
 
         x1, y1, x2, y2 = best_box
@@ -159,5 +160,4 @@ class AnimalDetector:
         
         # Das Bild von RGB zurück nach BGR konvertieren, damit OpenCV es richtig speichert
         crop_bgr = cv2.cvtColor(resized_crop, cv2.COLOR_RGB2BGR)
-        cv2.imwrite("aktueller_crop.jpg", crop_bgr)
         return resized_crop, species, {"box": (x1, y1, x2, y2), "orig_dim": (w_orig, h_orig)}

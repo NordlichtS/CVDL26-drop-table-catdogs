@@ -11,4 +11,4 @@ cd /home/st/sternberg/CVDL26-drop-table-catdogs
 source .venv/bin/activate
 
 # 2. Das Skript starten und den Pfad zu den hochgeladenen Bildern übergeben
-python3 Final_Project/train.py --data_dir ./images --save_dir ./
+python3 Final_Project/train.py --data_dir ./images --save_dir ./ --lr 0.0001 --epochs 50 --exp_name "lr1e-4"

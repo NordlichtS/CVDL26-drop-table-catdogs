@@ -1,0 +1,23 @@
+\section{time}
+\label{sec:time}
+
+Performance Analysis of the Inference Pipeline
+To ensure compliance with the latency constraint of a maximum of 5 seconds per image, a systematic performance profiling and optimization of the inference pipeline was conducted.
+
+1. Identification and Mitigation of I/O Bottlenecks
+Initial measurements indicated a total execution time of approximately 11.5 seconds. Profiling identified that the primary performance bottleneck was not the computational complexity of the models (the forward pass), but rather high-latency Disk I/O operations. The pipeline previously relied on persistent storage for intermediate artifacts by serializing cropped images to the disk before re-reading them.
+
+Optimization: The architecture was refactored to an In-Memory-Processing paradigm. By performing all necessary pre-processing steps—such as cropping and resizing—using NumPy-based array manipulation directly in the RAM, we eliminated redundant read/write cycles.
+
+2. Differentiation: Initialization Overhead vs. Inference Latency
+A critical methodological distinction for this analysis was the separation of Initialization Overhead (Cold Start) and Inference Latency (Forward Pass):
+
+Initialization Overhead: The loading of the four-model ensemble (YOLOv6 detector and the respective animal classifiers) from the disk into the VRAM is a computationally expensive process. However, this occurs only once during the startup phase.
+
+Inference Latency: This metric describes the time required to process a pre-loaded image through the model.
+
+3. Evaluation and Conclusion
+Following the optimization of the I/O-pipeline, the system achieved a highly efficient average inference latency of 0.3070 seconds per image. While the total execution time (including initialization and script startup) remains at approximately 8.5 seconds for a single-image sample, the average inference time per image is well below the target threshold of 5.0 seconds.
+
+Fazit für das Paper:
+The optimizations demonstrate that the current model ensemble is well-scaled for the deployment environment. Since the per-image inference latency is approximately 307ms, the system provides a significant buffer for processing larger batches. Consequently, no further architectural changes (such as model pruning or quantization) are required to meet the specified performance requirements for this challenge.

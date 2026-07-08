@@ -117,8 +117,10 @@ def macro_f1_and_cm(preds, labels):
 def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler, scaler, num_epochs, device, species_name):
     print(f"\n>>> Starte FROM-SCRATCH Training für {species_name.upper()} ({num_epochs} Epochen) <<<")
     best_f1 = 0.0
-    save_path = f"{species_name}_scratch.pth" # Speichert direkt unter cat_scratch.pth / dog_scratch.pth
     
+    # Liest den Namen direkt aus den Argumenten, die wir unten definiert haben
+    save_path = f"{species_name}_scratch_{args.exp_name}.pth"
+
     for epoch in range(1, num_epochs + 1):
         t0 = time.time()
         cur_lr = optimizer.param_groups[0]["lr"]
@@ -192,7 +194,15 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
             print(f"  >> Neues bestes Modell überschrieben -> '{save_path}'")
     print(f">>>> {species_name.capitalize()}-Training beendet! Beste F1: {best_f1:.4f} <<<<\n")
 
+
 if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--lr', type=float, default=1e-3, help='Basis-Lernrate')
+    parser.add_argument('--epochs', type=int, default=80, help='Anzahl der Epochen')
+    parser.add_argument('--exp_name', type=str, default='default', help='Name des Experiments für die .pth Dateien')
+    args = parser.parse_args()
+
     SEED = 42
     torch.manual_seed(SEED)
     random.seed(SEED)
@@ -201,11 +211,10 @@ if __name__ == "__main__":
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     print(f"Training läuft auf: {device}")
     
-    # Hyperparameter (Hier gerne batch_size=16 und img_size=224 für VRAM-Schonung!)
+    # Hyperparameter aus den Argumenten übernehmen
     batch_size = 16
-
-    num_epochs = 80       
-    learning_rate = 1e-3  
+    num_epochs = args.epochs       
+    learning_rate = args.lr  
     warmup_epochs = 5     
     img_size = 224
     
@@ -213,7 +222,7 @@ if __name__ == "__main__":
     csv_file = os.path.join(img_dir, "labels.csv")
     detector = AnimalDetector(weights_path='yolov6s.pt', device=device)
     
-    # Datenaugmentierungen
+    # Datenaugmentierungen (bleiben gleich)
     train_transform = transforms.Compose([
         transforms.Resize(int(img_size * 1.14)),
         transforms.RandomResizedCrop(img_size, scale=(0.7, 1.0)),
@@ -231,33 +240,20 @@ if __name__ == "__main__":
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
 
-    # NEU: Die Automatisierungs-Schleife für beide Datensätze nacheinander!
-    # Durchlauf 1: classes_folder = None -> Nutzt deine labels.csv
-    # Durchlauf 2: classes_folder = "./classes" -> Nutzt die Ordner deines Freundes
     for classes_folder in [None, "./classes"]:
-        
         mode_text = "EIGENE CSV-DATEN" if classes_folder is None else "ORDNERSTRUKTUR (FREUND)"
         print(f"\n=======================================================")
         print(f" STARTE TRAININGSMODUS: {mode_text}")
         print(f"=======================================================\n")
 
         for species in ["cat", "dog"]:
-            # Initialisierung des Datasets mit dem flexiblen classes_dir Parameter
-            full_dataset = CroppedAnimalDataset(
-                csv_file, 
-                img_dir, 
-                species=species, 
-                detector=detector, 
-                transform=train_transform,
-                classes_dir=classes_folder
-            )
+            full_dataset = CroppedAnimalDataset(csv_file, img_dir, species=species, detector=detector, transform=train_transform, classes_dir=classes_folder)
             
             indices = list(range(len(full_dataset)))
             random.shuffle(indices)
             split = int(0.8 * len(indices))
             train_indices, val_indices = indices[:split], indices[split:]
             
-            # Labels dynamisch auslesen (funktioniert für CSV und folder_mode dank nachgebautem Dataframe)
             train_labels = [int(full_dataset.data.iloc[i, 1]) for i in train_indices]
             train_labels_mapped = [l if species == "cat" else l - 10 for l in train_labels]
             counts = Counter(train_labels_mapped)
@@ -267,13 +263,12 @@ if __name__ == "__main__":
             
             train_loader = DataLoader(torch.utils.data.Subset(full_dataset, train_indices), batch_size=batch_size, sampler=sampler, num_workers=0, pin_memory=True)
             
-            # Validierungs-Dataset ebenfalls mit classes_folder instanziieren
             val_dataset_obj = CroppedAnimalDataset(csv_file, img_dir, species=species, detector=detector, transform=val_transform, classes_dir=classes_folder)
             val_loader = DataLoader(torch.utils.data.Subset(val_dataset_obj, val_indices), batch_size=batch_size, shuffle=False, num_workers=0, pin_memory=True)
             
-            # AUTOMATISCHER STACK: Wenn im ersten Durchlauf (CSV) "cat_scratch.pth" erzeugt wurde,
-            # lädt der zweite Durchlauf (classes) diese Gewichte automatisch und trainiert darauf weiter!
-            expected_weights_file = f"{species}_scratch.pth"
+            # DYNAMISCHER PFAD: Nutzt den Experiment-Namen!
+            # Erzeugt z.B. "cat_scratch_lr1e-4.pth"
+            expected_weights_file = f"{species}_scratch_{args.exp_name}.pth"
             weights_to_pass = expected_weights_file if os.path.exists(expected_weights_file) else None
             
             model = AnimalClassifier(weights_path=weights_to_pass, num_classes=NUM_CLASSES, device=device)
@@ -291,6 +286,6 @@ if __name__ == "__main__":
             )
             scaler = torch.amp.GradScaler() if device == "cuda" else None
             
+            # WICHTIG: Wir müssen der Funktion sagen, wie die Datei heißen soll!
+            # Dafür passen wir kurz den Funktionsaufruf an:
             train_model(model, train_loader, val_loader, criterion, optimizer, scheduler, scaler, num_epochs, device, species)
-
-    print("\n ALLES ERFOLGREICH BEENDET! BEIDE DATENSÄTZE AUF DEMSELBEN STACK TRAINIERT!")

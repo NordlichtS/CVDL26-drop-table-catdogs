@@ -24,8 +24,8 @@ from PIL import Image
 from tqdm import tqdm
 
 # ----------------------------- Config ---------------------------------------
-DATASET_PATH = "/kaggle/input/datasets/vaniakazakov/test-animals-rec/classes"
-OUT_DIR = "/kaggle/working"
+DATASET_PATH = "../classes"
+OUT_DIR = "../"
 BATCH_SIZE = 64          # split across GPUs by DataParallel (32 per T4)
 TRAIN_SPLIT = 0.8
 SEED = 42

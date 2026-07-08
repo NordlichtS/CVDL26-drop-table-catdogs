@@ -1,15 +1,23 @@
 import os
+import time
+import random
+import numpy as np
 import pandas as pd
 from PIL import Image
+from collections import Counter
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader, WeightedRandomSampler
 from torchvision import transforms
 from tqdm import tqdm
 
 from Final_Project.detector import AnimalDetector
 from animalClassifier import AnimalClassifier
+
+CAT_CLASSES = ["Abyssinian", "Bengal", "Birman", "Bombay", "British_Shorthair", "Maine_Coon", "Ragdoll", "Sphynx", "Tabby", "Tiger_Cat"]
+DOG_CLASSES = ["Beagle", "Pug", "Boxer", "Shiba_Inu", "Samoyed", "Golden_Retriever", "German_Shepherd", "Siberian_Husky", "Dalmatian", "Rottweiler"]
+NUM_CLASSES = 10
 
 class CroppedAnimalDataset(Dataset):
     def __init__(self, csv_file, img_dir, species, detector, transform=None):
@@ -34,6 +42,7 @@ class CroppedAnimalDataset(Dataset):
         img_name = self.data.iloc[idx, 0]
         original_label = int(self.data.iloc[idx, 1])
         
+        # Umrechnen der Hunde-Labels (10-19) auf (0-9) für das 10-Klassen-Modell
         label = original_label if self.species == "cat" else original_label - 10
         
         orig_img_path = os.path.join(self.img_dir, img_name)
@@ -48,7 +57,6 @@ class CroppedAnimalDataset(Dataset):
                     
                     if isinstance(crop_np, torch.Tensor):
                         crop_np = crop_np.cpu().detach().numpy()
-                    # Wenn es ein Numpy-Array ist, aber noch auf der GPU-Logik basiert:
                     elif hasattr(crop_np, 'cpu'):
                         crop_np = crop_np.cpu().numpy()
                     
@@ -63,98 +71,173 @@ class CroppedAnimalDataset(Dataset):
             
         return crop_tensor, label
 
-# --- 2. TRAININGS-FUNKTION ---
-def train_model(model, dataloader, criterion, optimizer, num_epochs, device, model_name):
-    model.train()
-    print(f"\n--- Starte Training für {model_name} ({num_epochs} Epochen) ---")
+def macro_f1_and_cm(preds, labels):
+    cm = np.zeros((NUM_CLASSES, NUM_CLASSES), dtype=np.int64)
+    for p, t in zip(preds, labels):
+        cm[t, p] += 1
+    f1s = []
+    for c in range(NUM_CLASSES):
+        tp = cm[c, c]
+        fp = cm[:, c].sum() - tp
+        fn = cm[c, :].sum() - tp
+        prec = tp / (tp + fp) if tp + fp else 0.0
+        rec = tp / (tp + fn) if tp + fn else 0.0
+        f1s.append(2 * prec * rec / (prec + rec) if prec + rec else 0.0)
+    return float(np.mean(f1s)), f1s
+
+def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler, scaler, num_epochs, device, species_name):
+    print(f"\n>>> Starte FROM-SCRATCH Training für {species_name.upper()} ({num_epochs} Epochen) <<<")
+    best_f1 = 0.0
+    save_path = f"{species_name}_scratch.pth" # Speichert direkt unter cat_scratch.pth / dog_scratch.pth
     
-    for epoch in range(num_epochs):
-        running_loss = 0.0
-        correct = 0
-        total = 0
+    for epoch in range(1, num_epochs + 1):
+        t0 = time.time()
+        cur_lr = optimizer.param_groups[0]["lr"]
         
-        progress_bar = tqdm(dataloader, desc=f"Epoche {epoch+1}/{num_epochs}")
+        # --- TRAINING ---
+        model.train()
+        running_loss, correct, total, n_batches = 0.0, 0, 0, 0
+        progress_bar = tqdm(train_loader, desc=f"{species_name.capitalize()} Epoche {epoch}/{num_epochs}")
         
         for inputs, labels in progress_bar:
-            inputs, labels = inputs.to(device), labels.to(device)
+            inputs, labels = inputs.to(device, non_blocking=True), labels.to(device, non_blocking=True)
+            optimizer.zero_grad(set_to_none=True)
             
-            optimizer.zero_grad()
+            with torch.amp.autocast(device_type="cuda" if "cuda" in device else "cpu", enabled=scaler is not None):
+                outputs = model.backbone(inputs)
+                loss = criterion(outputs, labels)
             
-            # FEHLER BEHOBEN: Modell direkt aufrufen, nicht das backbone!
-            outputs = model.backbone(inputs) 
-            loss = criterion(outputs, labels)
-            
-            loss.backward()
-            optimizer.step()
+            if scaler:
+                scaler.scale(loss).backward()
+                scaler.step(optimizer)
+                scaler.update()
+            else:
+                loss.backward()
+                optimizer.step()
             
             running_loss += loss.item()
+            n_batches += 1
             _, predicted = torch.max(outputs.data, 1)
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
             
-            progress_bar.set_postfix(loss=loss.item(), acc=100.*correct/total)
+            progress_bar.set_postfix(loss=f"{running_loss / n_batches:.3f}", acc=f"{100.*correct/total:.2f}%")
             
-        epoch_loss = running_loss / len(dataloader)
-        epoch_acc = 100. * correct / total
-        print(f"[{model_name}] Epoche {epoch+1} abgeschlossen | Loss: {epoch_loss:.4f} | Accuracy: {epoch_acc:.2f}%")
-
-    save_path = f"{model_name}.pth"
-    torch.save(model.state_dict(), save_path)
-    print(f"[ERFOLG] Gewichte für {model_name} in '{save_path}' gespeichert!\n")
-
+        train_loss = running_loss / n_batches
+        train_acc = correct / total
+        scheduler.step()
+        
+        # --- EVALUIERUNG ---
+        model.eval()
+        all_preds, all_labels = [], []
+        val_loss, n_val_batches = 0.0, 0
+        
+        with torch.no_grad():
+            for inputs, labels in val_loader:
+                inputs = inputs.to(device, non_blocking=True)
+                labels_d = labels.to(device, non_blocking=True)
+                
+                with torch.amp.autocast(device_type="cuda" if "cuda" in device else "cpu", enabled=scaler is not None):
+                    outputs = model.backbone(inputs)
+                    val_loss += criterion(outputs, labels_d).item()
+                
+                n_val_batches += 1
+                all_preds.extend(outputs.argmax(1).cpu().tolist())
+                all_labels.extend(labels.tolist())
+                
+        val_loss /= n_val_batches
+        val_acc = float(np.mean(np.array(all_preds) == np.array(all_labels)))
+        macro_f1, _ = macro_f1_and_cm(all_preds, all_labels)
+        dt = time.time() - t0
+        
+        print(f"  [{species_name.upper()} EP {epoch}] LR: {cur_lr:.2e} | Train Loss: {train_loss:.4f} | Val Acc: {val_acc * 100:.2f}% | Macro F1: {macro_f1:.4f} ({dt:.0f}s)")
+        
+        if macro_f1 > best_f1:
+            best_f1 = macro_f1
+            torch.save({
+                "model_state": model.state_dict(),
+                "species": species_name,
+                "epoch": epoch,
+                "macro_f1": macro_f1
+            }, save_path)
+            print(f"  >> Neues bestes Modell überschrieben -> '{save_path}'")
+    print(f">>>> {species_name.capitalize()}-Training beendet! Beste F1: {best_f1:.4f} <<<<\n")
 
 if __name__ == "__main__":
+    SEED = 42
+    torch.manual_seed(SEED)
+    random.seed(SEED)
+    np.random.seed(SEED)
+
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     print(f"Training läuft auf: {device}")
     
-    batch_size = 5
-    num_epochs = 1
-    learning_rate = 0.001
+    # KORREKTUR AUS TRAINEFFNET FÜR FROM_SCRATCH = TRUE
+    batch_size = 32
+    num_epochs = 80       # Erhöht von 15 auf 80, da von Scratch gelernt wird
+    learning_rate = 1e-3  # Höhere Lernrate für Scratch-Training
+    warmup_epochs = 5     # Längerer Warmup für stabile Konvergenz
+    img_size = 384
     
     img_dir = "images" 
     csv_file = os.path.join(img_dir, "labels.csv")
-    
     detector = AnimalDetector(weights_path='yolov6s.pt', device=device)
     
-    # FEHLER BEHOBEN: Resize hinzugefügt, damit alle Tektoren dieselbe Form besitzen
+    # Datenaugmentierungen
     train_transform = transforms.Compose([
-        transforms.Resize((224, 224)),
+        transforms.Resize(int(img_size * 1.14)),
+        transforms.RandomResizedCrop(img_size, scale=(0.7, 1.0)),
+        transforms.RandomHorizontalFlip(),
+        transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.15),
         transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        transforms.RandomErasing(p=0.25),
     ])
 
-    # 1. KATZEN-MODELL
-    cat_dataset = CroppedAnimalDataset(csv_file, img_dir, species="cat", detector=detector, transform=train_transform)
-    # FEHLER BEHOBEN: num_workers=0, um YOLO-Multiprocessing-Abstürze zu verhindern
-    cat_loader = DataLoader(cat_dataset, batch_size=batch_size, shuffle=True, num_workers=0)
-    
-    cat_weights = "cat_scratch.pth"
-    cat_model = AnimalClassifier(
-        weights_path=cat_weights if os.path.exists(cat_weights) else None, 
-        num_classes=10, 
-        device=device
-    ).to(device)
+    val_transform = transforms.Compose([
+        transforms.Resize(int(img_size * 1.14)),
+        transforms.CenterCrop(img_size),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+    ])
 
-    criterion = nn.CrossEntropyLoss()
-    # Achte darauf, ob du nur das Backbone oder das gesamte cat_model optimieren willst!
-    optimizer_cat = optim.Adam(cat_model.parameters(), lr=learning_rate)
-    
-    train_model(cat_model, cat_loader, criterion, optimizer_cat, num_epochs, device, "cat_scratch")
-    
+    for species in ["cat", "dog"]:
+        full_dataset = CroppedAnimalDataset(csv_file, img_dir, species=species, detector=detector, transform=train_transform)
+        
+        indices = list(range(len(full_dataset)))
+        random.shuffle(indices)
+        split = int(0.8 * len(indices))
+        train_indices, val_indices = indices[:split], indices[split:]
+        
+        train_labels = [int(full_dataset.data.iloc[i, 1]) for i in train_indices]
+        train_labels_mapped = [l if species == "cat" else l - 10 for l in train_labels]
+        counts = Counter(train_labels_mapped)
+        wcls = {c: 1.0 / n for c, n in counts.items()}
+        sample_weights = [wcls[lbl] for lbl in train_labels_mapped]
+        sampler = WeightedRandomSampler(sample_weights, len(sample_weights), replacement=True)
+        
+        train_loader = DataLoader(torch.utils.data.Subset(full_dataset, train_indices), batch_size=batch_size, sampler=sampler, num_workers=0, pin_memory=True)
+        val_loader = DataLoader(torch.utils.data.Subset(CroppedAnimalDataset(csv_file, img_dir, species=species, detector=detector, transform=val_transform), val_indices), batch_size=batch_size, shuffle=False, num_workers=0, pin_memory=True)
+        
+        # PRÜFUNG: Wenn die Datei existiert, lade sie. Wenn nicht, bleibt es bei None (Scratch).
+        expected_weights_file = f"{species}_scratch.pth"
+        weights_to_pass = expected_weights_file if os.path.exists(expected_weights_file) else None
+        
+        model = AnimalClassifier(weights_path=weights_to_pass, num_classes=NUM_CLASSES, device=device)
+        
+        criterion = nn.CrossEntropyLoss(label_smoothing=0.1)
+        optimizer = optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=1e-4)
+        
+        scheduler = optim.lr_scheduler.SequentialLR(
+            optimizer,
+            schedulers=[
+                optim.lr_scheduler.LinearLR(optimizer, start_factor=0.1, total_iters=warmup_epochs),
+                optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_epochs - warmup_epochs),
+            ],
+            milestones=[warmup_epochs],
+        )
+        scaler = torch.amp.GradScaler() if device == "cuda" else None
+        
+        train_model(model, train_loader, val_loader, criterion, optimizer, scheduler, scaler, num_epochs, device, species)
 
-    # 2. HUNDE-MODELL
-    dog_dataset = CroppedAnimalDataset(csv_file, img_dir, species="dog", detector=detector, transform=train_transform)
-    dog_loader = DataLoader(dog_dataset, batch_size=batch_size, shuffle=True, num_workers=0)
-    
-    dog_weights = "dog_scratch.pth"
-    dog_model = AnimalClassifier(
-        weights_path=dog_weights if os.path.exists(dog_weights) else None, 
-        num_classes=10, 
-        device=device
-    ).to(device)
-    
-    optimizer_dog = optim.Adam(dog_model.parameters(), lr=learning_rate)
-    
-    train_model(dog_model, dog_loader, criterion, optimizer_dog, num_epochs, device, "dog_scratch")
-    
-    print("ALL DONE!")
+    print("BEIDE SCRATCH-MODELLE BEREIT!")

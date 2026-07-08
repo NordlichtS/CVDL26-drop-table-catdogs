@@ -12,28 +12,30 @@ import numpy as np
 class AnimalDetector:
     def __init__(self, weights_path='yolov6s.pt', device=None):
             """
-            Initialisiert den YOLOv6 Detektor komplett lokal und offline.
+            Initialisiert den YOLOv6 Detektor. Lädt das Repo beim ersten Start
+            automatisch in den torch.hub Cache (Internet nur beim ersten Mal nötig).
             """
             self.device = device if device else ('cuda' if torch.cuda.is_available() else 'cpu')
-            
+
             # PyTorch 2.6+ Patch: Verhindert den restriktiven Modus beim Laden
             original_load = torch.load
             def custom_load(*args, **kwargs):
                 kwargs['weights_only'] = False
                 return original_load(*args, **kwargs)
             torch.load = custom_load
-            
+
             try:
-                # Pfad zum lokalen Torch-Hub Cache bestimmen
-                cache_dir = os.path.expanduser('~/.cache/torch/hub/meituan_YOLOv6_main')
-                
-                # KORREKTUR: Wir übergeben weights_path und class_names=[], damit 'custom()' glücklich ist
-                self.model = torch.hub.load(cache_dir, 'custom', ckpt_path=weights_path, class_names=[], source='local')
+                self.model = torch.hub.load(
+                    'meituan/YOLOv6', 'custom',
+                    ckpt_path=weights_path, class_names=[],
+                    source='github',            # <- статт локального кешу
+                    trust_repo=True,            # без інтерактивного prompt'а
+                )
             finally:
                 torch.load = original_load
-                
+
             self.model.to(self.device).eval()
-            
+
             # COCO Klassen-IDs für Katze (15) und Hund (16)
             self.CAT_CLASS_ID = 15
             self.DOG_CLASS_ID = 16

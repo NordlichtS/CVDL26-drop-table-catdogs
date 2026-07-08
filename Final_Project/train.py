@@ -203,6 +203,7 @@ if __name__ == "__main__":
     # KORREKTUR AUS TRAINEFFNET FÜR FROM_SCRATCH = TRUE
     batch_size = 16
     num_epochs = 120       # Erhöht von 15 auf 80, da von Scratch gelernt wird
+
     learning_rate = 1e-3  # Höhere Lernrate für Scratch-Training
     warmup_epochs = 5     # Längerer Warmup für stabile Konvergenz
     img_size = 224 

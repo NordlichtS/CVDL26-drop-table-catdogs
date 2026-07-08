@@ -202,6 +202,7 @@ if __name__ == "__main__":
     
     # Hyperparameter (Hier gerne batch_size=16 und img_size=224 für VRAM-Schonung!)
     batch_size = 16
+
     num_epochs = 80       
     learning_rate = 1e-3  
     warmup_epochs = 5     

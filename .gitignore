@@ -33,6 +33,8 @@ compare_crop.jpg
 aktuelles Bild.jpg
 images
 .jpg
+classes
+
 
 # LaTeX temporary/build files
 *.aux

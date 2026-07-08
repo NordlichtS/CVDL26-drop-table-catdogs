@@ -54,4 +54,4 @@ class AnimalClassifier(nn.Module):
         with torch.no_grad():
             output = self.backbone(input_tensor)
             
-        return output
+        

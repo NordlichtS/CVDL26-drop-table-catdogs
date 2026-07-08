@@ -20,20 +20,43 @@ DOG_CLASSES = ["Beagle", "Pug", "Boxer", "Shiba_Inu", "Samoyed", "Golden_Retriev
 NUM_CLASSES = 10
 
 class CroppedAnimalDataset(Dataset):
-    def __init__(self, csv_file, img_dir, species, detector, transform=None):
+    def __init__(self, csv_file, img_dir, species, detector, transform=None, classes_dir=None):
         self.img_dir = img_dir
         self.species = species
         self.detector = detector
         self.transform = transform
+        self.classes_dir = classes_dir  # Neu: Pfad zum "classes"-Ordner des Freundes
         
-        df = pd.read_csv(csv_file)
-        if self.species == "cat":
-            self.data = df[df['label'].between(0, 9)].reset_index(drop=True)
-        elif self.species == "dog":
-            self.data = df[df['label'].between(10, 19)].reset_index(drop=True)
-            
         self.cache_dir = os.path.join(img_dir, f"cropped_cache_{species}")
         os.makedirs(self.cache_dir, exist_ok=True)
+
+        # Modus 1: Ordnerstruktur von Ivan nutzen (wenn classes_dir existiert)
+        if self.classes_dir and os.path.exists(self.classes_dir):
+            rows = []
+            # Gehe durch alle Katzen- oder Hundeklassen
+            target_classes = CAT_CLASSES if species == "cat" else DOG_CLASSES
+            all_classes = CAT_CLASSES + DOG_CLASSES # Gesamte Liste für das globale Label (0-19)
+            
+            for class_name in target_classes:
+                class_folder = os.path.join(self.classes_dir, class_name)
+                if os.path.exists(class_folder):
+                    global_label = all_classes.index(class_name) # Bestimmt das originale Label 0-19
+                    for img_name in os.listdir(class_folder):
+                        if img_name.lower().endswith(('.png', '.jpg', '.jpeg')):
+                            # Wir speichern den relativen Pfad ab dem Klassenordner
+                            rows.append({'filename': os.path.join(class_name, img_name), 'label': global_label})
+            
+            self.data = pd.DataFrame(rows)
+            self.is_folder_mode = True
+
+        # Modus 2: Deine eigene labels.csv nutzen (Fallback)
+        else:
+            df = pd.read_csv(csv_file)
+            if self.species == "cat":
+                self.data = df[df['label'].between(0, 9)].reset_index(drop=True)
+            elif self.species == "dog":
+                self.data = df[df['label'].between(10, 19)].reset_index(drop=True)
+            self.is_folder_mode = False
 
     def __len__(self):
         return len(self.data)
@@ -42,11 +65,18 @@ class CroppedAnimalDataset(Dataset):
         img_name = self.data.iloc[idx, 0]
         original_label = int(self.data.iloc[idx, 1])
         
-        # Umrechnen der Hunde-Labels (10-19) auf (0-9) für das 10-Klassen-Modell
         label = original_label if self.species == "cat" else original_label - 10
         
-        orig_img_path = os.path.join(self.img_dir, img_name)
-        cached_img_path = os.path.join(self.cache_dir, img_name)
+        # Pfad-Unterscheidung je nach Daten-Modus
+        if getattr(self, 'is_folder_mode', False):
+            orig_img_path = os.path.join(self.classes_dir, img_name)
+            # Für den Cache ersetzen wir den Slash, damit es im flachen Cache-Ordner landet
+            cached_name = img_name.replace(os.sep, "_")
+        else:
+            orig_img_path = os.path.join(self.img_dir, img_name)
+            cached_name = img_name
+            
+        cached_img_path = os.path.join(self.cache_dir, cached_name)
         
         if os.path.exists(cached_img_path):
             crop_image = Image.open(cached_img_path).convert("RGB")
@@ -54,12 +84,10 @@ class CroppedAnimalDataset(Dataset):
             try:
                 with torch.no_grad():
                     crop_np, detected_species, meta = self.detector.detect_largest_animal(orig_img_path)
-                    
                     if isinstance(crop_np, torch.Tensor):
                         crop_np = crop_np.cpu().detach().numpy()
                     elif hasattr(crop_np, 'cpu'):
                         crop_np = crop_np.cpu().numpy()
-                    
                     crop_image = Image.fromarray(crop_np)
                     crop_image.save(cached_img_path)
             except Exception as e:
@@ -173,12 +201,12 @@ if __name__ == "__main__":
     print(f"Training läuft auf: {device}")
     
     # KORREKTUR AUS TRAINEFFNET FÜR FROM_SCRATCH = TRUE
-    batch_size = 32
-    num_epochs = 80       # Erhöht von 15 auf 80, da von Scratch gelernt wird
+    batch_size = 16
+    num_epochs = 120       # Erhöht von 15 auf 80, da von Scratch gelernt wird
     learning_rate = 1e-3  # Höhere Lernrate für Scratch-Training
     warmup_epochs = 5     # Längerer Warmup für stabile Konvergenz
-    img_size = 384
-    
+    img_size = 224 
+       
     img_dir = "images" 
     csv_file = os.path.join(img_dir, "labels.csv")
     detector = AnimalDetector(weights_path='yolov6s.pt', device=device)
@@ -202,7 +230,9 @@ if __name__ == "__main__":
     ])
 
     for species in ["cat", "dog"]:
-        full_dataset = CroppedAnimalDataset(csv_file, img_dir, species=species, detector=detector, transform=train_transform)
+
+        classes_folder_path = "./classes"
+        full_dataset = CroppedAnimalDataset(csv_file, img_dir, species=species, detector=detector, transform=train_transform, classes_dir=classes_folder_path)
         
         indices = list(range(len(full_dataset)))
         random.shuffle(indices)

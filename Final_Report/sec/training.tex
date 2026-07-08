@@ -24,3 +24,12 @@ main goal.
 During training we realized that our algorithm was still getting worse from time to time, due to this we verified our picture dataset and realized that dalmatian have been excluded for now 
 of the dataset. As none of the api connections we used earlier had any dalamtian pictures, we donwloaded a file of 359 Dalmatian pictures and included this in our dataset. Through this after 10 Epochs of training we
 had a big jump from 17 to 69\% accuracy.
+
+
+learnings:
+Batch size is to high -> lowering to 16
+lowering pixel size to 224 instead of 384
+
+Der Speicherverbrauch auf der GPU wächst nicht linear, sondern quadratisch mit der Bildgröße, da ein Bild zwei Dimensionen (Breite $\times$ Höhe) hat:Ein Bild mit der Standardgröße $224 \times 224$ hat 50.176 Pixel.Ein Bild mit deiner Größe $384 \times 384$ hat 147.456 Pixel.Das bedeutet: Nur weil du img_size von 224 auf 384 erhöht hast, muss deine Grafikkarte für jedes einzelne Bild fast die 3-fache Menge an Pixeln und Aktivierungen im VRAM abspeichern! Bei tieferen Netzwerken wie EfficientNet multipliziert sich dieser Speicherplatz durch die vielen Schichten des Modells extrem schnell auf.
+
+Die batch_size = 32 bestimmt, wie viele dieser Bilder das neuronale Netz gleichzeitig (parallel) verarbeiten soll.Wenn PyTorch einen Vorwärtspass (Forward Pass) macht, muss es für alle 32 Bilder parallel die Aktivierungen jeder einzelnen Zwischenschicht im VRAM behalten, um danach im Rückwärtspass (Backward Pass) die Gradienten berechnen zu können.Bei batch_size = 32 und img_size = 384 versucht dein Skript grob gesagt, den Speicherplatz für $32 \times 147.456 \text{ Pixel} \times \text{Modell-Schichten}$ auf einmal zu reservieren. Das hat deine 7.6 GiB Grafikkarte gesprengt.Wenn du die batch_size auf 16 halbierst, muss die GPU in jedem Schritt nur noch halb so viele Zwischenergebnisse gleichzeitig speichern. Der Speicherverbrauch sinkt sofort um die Hälfte.

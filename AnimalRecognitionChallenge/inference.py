@@ -37,7 +37,7 @@ from tqdm import tqdm
 
 from Final_Project.detector import AnimalDetector
 from Final_Project.animalClassifier import AnimalClassifier
-from Final_Project.compare_classifier import CompareClassifier
+#from Final_Project.compare_classifier import CompareClassifier
 
 
 REJECT = -1
@@ -111,7 +111,7 @@ class Model(nn.Module):
             print(f"[FEHLER] Datei nicht gefunden unter: {os.path.abspath(cat_path)}")
         self.cat_classifier = AnimalClassifier(weights_path=cat_path, device=self.device)
         self.dog_classifier = AnimalClassifier(weights_path=dog_path, device=self.device)
-        self.compare_model = CompareClassifier(device=self.device)
+#        self.compare_model = CompareClassifier(device=self.device)
 
     def forward(self, image: Image.Image) -> int:
         # saving PIL-Image as a temporary File
@@ -130,7 +130,7 @@ class Model(nn.Module):
         if meta is None or species == "neither":
             return REJECT
         
-        comp_class, comp_conf = self.compare_model.predict_and_save(resized_crop_np)
+#        comp_class, comp_conf = self.compare_model.predict_and_save(resized_crop_np)
         print(f"[VERGLEICH] Das vortrainierte Modell sagt: {comp_class} (Sicherheit: {comp_conf:.2%})")
         # ---------------------------------------
 

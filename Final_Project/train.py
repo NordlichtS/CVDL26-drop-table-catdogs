@@ -7,6 +7,7 @@ import argparse
 import torch
 import torch.nn as nn
 import sys
+import gc
 import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader, WeightedRandomSampler
 from torchvision import transforms
@@ -181,7 +182,21 @@ if __name__ == "__main__":
             optimizer = optim.AdamW(model.parameters(), lr=args.lr)
             scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs)
             
-            train_loader = DataLoader(torch.utils.data.Subset(full_dataset, train_idx), batch_size=16, shuffle=True)
-            val_loader = DataLoader(torch.utils.data.Subset(full_dataset, val_idx), batch_size=16)
+            train_loader = DataLoader(torch.utils.data.Subset(full_dataset, train_idx), batch_size=8, shuffle=True)
+            val_loader = DataLoader(torch.utils.data.Subset(full_dataset, val_idx), batch_size=8)
             
             train_model(model, train_loader, val_loader, nn.CrossEntropyLoss(), optimizer, scheduler, torch.amp.GradScaler() if device == "cuda" else None, args.epochs, device, species, args.exp_name)
+
+            print(f"[INFO] Bereinige GPU-Speicher nach Phase: {mode['name']} - {species}...")
+            
+            # Lösche die dicken Brocken aus dem RAM/VRAM
+            del model
+            del optimizer
+            del scheduler
+            del train_loader
+            del val_loader
+            
+            # Erzwinge Python-Garbage-Collection und leere den CUDA-Cache
+            gc.collect()
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()

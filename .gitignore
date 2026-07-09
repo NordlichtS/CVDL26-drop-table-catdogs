@@ -47,6 +47,7 @@ classes
 *.brf
 *.out
 *.toc
+*.pth
 *.log
 
 # Optional: Ignore the generated PDF if you don't want to track it

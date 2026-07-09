@@ -20,14 +20,29 @@ class AnimalClassifier(nn.Module):
         self.backbone.classifier[1] = nn.Linear(in_features, num_classes)
         
         # --- 2. GEWICHTE LADEN (Nur wenn die Datei im Hauptordner existiert) ---
+        # --- 2. GEWICHTE INTELLIGENT LADEN ---
         if weights_path and os.path.exists(weights_path):
-            checkpoint = torch.load(weights_path, map_location=self.device)
-            # Kompatibilität mit dem traineffnet-Checkpoint-Format herstellen
+            # weights_only=False ist wichtig, da es ein komplexes Metadaten-Dict ist!
+            checkpoint = torch.load(weights_path, map_location=self.device, weights_only=False)
+            
+            # Falls es ein Dictionary mit Meta-Daten ist, extrahiere den model_state
             if isinstance(checkpoint, dict) and "model_state" in checkpoint:
-                self.load_state_dict(checkpoint["model_state"])
+                state_dict = checkpoint["model_state"]
             else:
-                self.load_state_dict(checkpoint)
-            print(f"[INFO] Eigene Gewichte erfolgreich geladen von: {os.path.abspath(weights_path)}")
+                state_dict = checkpoint
+
+            # Präfix-Check (Falls das "backbone." fehlt, fügen wir es hinzu)
+            has_backbone_prefix = any(k.startswith("backbone.") for k in state_dict.keys())
+            if not has_backbone_prefix:
+                new_state_dict = {}
+                for k, v in state_dict.items():
+                    new_state_dict[f"backbone.{k}"] = v
+                state_dict = new_state_dict
+
+            self.load_state_dict(state_dict)
+            print(f"[INFO] Gewichte erfolgreich geladen: {weights_path}")
+        
+        
         elif weights_path:
             print(f"[WARNUNG] '{weights_path}' nicht gefunden! Modell startet komplett von Null (Zufallswerte).")
         else:

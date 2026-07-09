@@ -6,6 +6,7 @@ import pandas as pd
 import argparse
 import torch
 import torch.nn as nn
+import sys
 import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader, WeightedRandomSampler
 from torchvision import transforms
@@ -75,17 +76,82 @@ class CroppedAnimalDataset(Dataset):
 
 def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler, scaler, num_epochs, device, species, exp_name):
     save_path = f"{species}_scratch_{exp_name}.pth"
+    
     for epoch in range(1, num_epochs + 1):
+        # --- 1. TRAININGS-PHASE ---
         model.train()
-        for inputs, labels in tqdm(train_loader, desc=f"{species} Epoch {epoch}"):
+        train_loss, train_correct, train_total = 0.0, 0, 0
+        
+        # file=sys.stdout schiebt die Progressbar ins Output-Log, leave=False löscht sie danach wieder (für saubere Logs)
+        train_pbar = tqdm(train_loader, desc=f"Train {species} Epoch {epoch}", file=sys.stdout, leave=False)
+        
+        for inputs, labels in train_pbar:
             inputs, labels = inputs.to(device), labels.to(device)
             optimizer.zero_grad(set_to_none=True)
+            
             with torch.amp.autocast(device_type="cuda" if "cuda" in device else "cpu"):
-                loss = criterion(model.backbone(inputs), labels)
-            if scaler: scaler.scale(loss).backward(); scaler.step(optimizer); scaler.update()
-            else: loss.backward(); optimizer.step()
+                outputs = model.backbone(inputs)
+                loss = criterion(outputs, labels)
+                
+            if scaler: 
+                scaler.scale(loss).backward()
+                scaler.step(optimizer)
+                scaler.update()
+            else: 
+                loss.backward()
+                optimizer.step()
+                
+            # Metriken sammeln
+            train_loss += loss.item() * inputs.size(0)
+            _, predicted = outputs.max(1)
+            train_total += labels.size(0)
+            train_correct += predicted.eq(labels).sum().item()
+
+        # --- 2. VALIDIERUNGS-PHASE ---
+        model.eval()
+        val_loss, val_correct, val_total = 0.0, 0, 0
+        
+        with torch.no_grad():
+            val_pbar = tqdm(val_loader, desc=f"Val {species} Epoch {epoch}", file=sys.stdout, leave=False)
+            for inputs, labels in val_pbar:
+                inputs, labels = inputs.to(device), labels.to(device)
+                
+                with torch.amp.autocast(device_type="cuda" if "cuda" in device else "cpu"):
+                    outputs = model.backbone(inputs)
+                    loss = criterion(outputs, labels)
+                    
+                # Metriken sammeln
+                val_loss += loss.item() * inputs.size(0)
+                _, predicted = outputs.max(1)
+                val_total += labels.size(0)
+                val_correct += predicted.eq(labels).sum().item()
+
+        # --- 3. METRIKEN BERECHNEN & LOGGEN ---
+        epoch_train_loss = train_loss / train_total if train_total > 0 else 0.0
+        epoch_train_acc = 100. * train_correct / train_total if train_total > 0 else 0.0
+        
+        epoch_val_loss = val_loss / val_total if val_total > 0 else 0.0
+        epoch_val_acc = 100. * val_correct / val_total if val_total > 0 else 0.0
+        
+        current_lr = optimizer.param_groups[0]['lr']
+        
+        # flush=True erzwingt, dass die Zeile SOFORT ins Log geschrieben wird (wichtig für tail -f)
+        log_msg = (f"Epoch [{epoch:03d}/{num_epochs}] | Species: {species.upper()} | LR: {current_lr:.6f} | "
+                   f"Train Loss: {epoch_train_loss:.4f} - Acc: {epoch_train_acc:.2f}% | "
+                   f"Val Loss: {epoch_val_loss:.4f} - Acc: {epoch_val_acc:.2f}%")
+        
+        print(log_msg, flush=True)
+
         scheduler.step()
-        torch.save({"model_state": model.state_dict()}, save_path)
+        # Speichere das Modell nur, wenn es besser ist, oder speichere zumindest die Werte mit ab!
+        torch.save({
+            "epoch": epoch,
+            "model_state": model.state_dict(),
+            "val_acc": epoch_val_acc,
+            "val_loss": epoch_val_loss,
+            "lr": current_lr
+        }, save_path)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

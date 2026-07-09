@@ -9,11 +9,12 @@ import torch.nn as nn
 import sys
 import gc
 import torch.optim as optim
-from torch.utils.data import Dataset, DataLoader, WeightedRandomSampler
+from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
 from tqdm import tqdm
 from collections import Counter
-from PIL import Image
+# WICHTIG: ImageFilter für das Blurring importieren
+from PIL import Image, ImageFilter
 
 # Importe aus deinem Projekt
 from Final_Project.detector import AnimalDetector
@@ -25,7 +26,8 @@ DOG_CLASSES = ["Beagle", "Pug", "Boxer", "Shiba_Inu", "Samoyed", "Golden_Retriev
 NUM_CLASSES = 10
 
 class CroppedAnimalDataset(Dataset):
-    def __init__(self, csv_file, img_dir, species, detector, transform=None, classes_dir=None):
+    # NEU: 'indices', 'mirror' und 'blur' Argumente im Init hinzugefügt
+    def __init__(self, csv_file, img_dir, species, detector=None, transform=None, classes_dir=None, indices=None, mirror=False, blur=False):
         self.img_dir = img_dir
         self.species = species
         self.detector = detector
@@ -53,11 +55,30 @@ class CroppedAnimalDataset(Dataset):
             self.data = df[df['label'].between(0, 9)] if species == "cat" else df[df['label'].between(10, 19)]
             self.is_folder_mode = False
 
-    def __len__(self): return len(self.data)
+        # NEU: Bestimme, welche Indizes dieses Dataset nutzen soll (wichtig für sauberen Split)
+        if indices is not None:
+            self.indices_list = indices
+        else:
+            self.indices_list = list(range(len(self.data)))
+
+        # NEU: Hier bauen wir die Pipeline "erst normal, dann erweitert" dynamisch auf
+        self.samples = [(idx, 'normal') for idx in self.indices_list]
+        
+        if mirror:
+            self.samples += [(idx, 'mirror') for idx in self.indices_list]
+        if blur:
+            self.samples += [(idx, 'blur') for idx in self.indices_list]
+
+    def __len__(self): 
+        # Gibt jetzt die vervielfachte Länge zurück
+        return len(self.samples)
 
     def __getitem__(self, idx):
-        img_name = self.data.iloc[idx, 0]
-        label = int(self.data.iloc[idx, 1]) if self.species == "cat" else int(self.data.iloc[idx, 1]) - 10
+        # NEU: Hole den echten Index und den Augmentierungs-Typ aus der Liste
+        real_idx, aug_type = self.samples[idx]
+        
+        img_name = self.data.iloc[real_idx, 0]
+        label = int(self.data.iloc[real_idx, 1]) if self.species == "cat" else int(self.data.iloc[real_idx, 1]) - 10
         
         orig_img_path = os.path.join(self.classes_dir if self.is_folder_mode else self.img_dir, img_name)
         cached_name = img_name.replace(os.sep, "_") if self.is_folder_mode else img_name
@@ -73,6 +94,12 @@ class CroppedAnimalDataset(Dataset):
             except:
                 crop_image = Image.open(orig_img_path).convert("RGB")
         
+        # NEU: Augmentierungs-Funktionen anwenden, BEVOR das Bild transformiert/normalisiert wird
+        if aug_type == 'mirror':
+            crop_image = crop_image.transpose(Image.FLIP_LEFT_RIGHT)
+        elif aug_type == 'blur':
+            crop_image = crop_image.filter(ImageFilter.GaussianBlur(radius=1.5))
+        
         return self.transform(crop_image), label
 
 def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler, scaler, num_epochs, device, species, exp_name):
@@ -83,7 +110,6 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
         model.train()
         train_loss, train_correct, train_total = 0.0, 0, 0
         
-        # file=sys.stdout schiebt die Progressbar ins Output-Log, leave=False löscht sie danach wieder (für saubere Logs)
         train_pbar = tqdm(train_loader, desc=f"Train {species} Epoch {epoch}", file=sys.stdout, leave=False)
         
         for inputs, labels in train_pbar:
@@ -102,7 +128,6 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
                 loss.backward()
                 optimizer.step()
                 
-            # Metriken sammeln
             train_loss += loss.item() * inputs.size(0)
             _, predicted = outputs.max(1)
             train_total += labels.size(0)
@@ -111,6 +136,9 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
         # --- 2. VALIDIERUNGS-PHASE ---
         model.eval()
         val_loss, val_correct, val_total = 0.0, 0, 0
+        
+        class_correct = [0] * NUM_CLASSES
+        class_total = [0] * NUM_CLASSES
         
         with torch.no_grad():
             val_pbar = tqdm(val_loader, desc=f"Val {species} Epoch {epoch}", file=sys.stdout, leave=False)
@@ -121,11 +149,17 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
                     outputs = model.backbone(inputs)
                     loss = criterion(outputs, labels)
                     
-                # Metriken sammeln
                 val_loss += loss.item() * inputs.size(0)
                 _, predicted = outputs.max(1)
                 val_total += labels.size(0)
                 val_correct += predicted.eq(labels).sum().item()
+                
+                for i in range(labels.size(0)):
+                    label = labels[i].item()
+                    pred = predicted[i].item()
+                    class_total[label] += 1
+                    if label == pred:
+                        class_correct[label] += 1
 
         # --- 3. METRIKEN BERECHNEN & LOGGEN ---
         epoch_train_loss = train_loss / train_total if train_total > 0 else 0.0
@@ -134,9 +168,16 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
         epoch_val_loss = val_loss / val_total if val_total > 0 else 0.0
         epoch_val_acc = 100. * val_correct / val_total if val_total > 0 else 0.0
         
+        per_class_acc = {}
+        target_classes = CAT_CLASSES if species == "cat" else DOG_CLASSES
+        for i in range(NUM_CLASSES):
+            if class_total[i] > 0:
+                per_class_acc[target_classes[i]] = 100. * class_correct[i] / class_total[i]
+            else:
+                per_class_acc[target_classes[i]] = 0.0
+        
         current_lr = optimizer.param_groups[0]['lr']
         
-        # flush=True erzwingt, dass die Zeile SOFORT ins Log geschrieben wird (wichtig für tail -f)
         log_msg = (f"Epoch [{epoch:03d}/{num_epochs}] | Species: {species.upper()} | LR: {current_lr:.6f} | "
                    f"Train Loss: {epoch_train_loss:.4f} - Acc: {epoch_train_acc:.2f}% | "
                    f"Val Loss: {epoch_val_loss:.4f} - Acc: {epoch_val_acc:.2f}%")
@@ -144,13 +185,14 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
         print(log_msg, flush=True)
 
         scheduler.step()
-        # Speichere das Modell nur, wenn es besser ist, oder speichere zumindest die Werte mit ab!
+        
         torch.save({
             "epoch": epoch,
             "model_state": model.state_dict(),
             "val_acc": epoch_val_acc,
             "val_loss": epoch_val_loss,
-            "lr": current_lr
+            "lr": current_lr,
+            "per_class_acc": per_class_acc
         }, save_path)
 
 
@@ -159,54 +201,65 @@ if __name__ == "__main__":
     parser.add_argument('--lr', type=float, default=1e-3); parser.add_argument('--epochs', type=int, default=80)
     parser.add_argument('--exp_name', type=str, default='default'); parser.add_argument('--data_dir', type=str, default='images')
     parser.add_argument('--classes_dir', type=str, default='./classes')
+    
+    # NEU: Argparse Flags für die Vervielfachung registrieren
+    parser.add_argument('--mirror', action='store_true', help='Aktiviert das Spiegeln (Horizontal Flip) zur Datenvervielfachung')
+    parser.add_argument('--blur', action='store_true', help='Aktiviert Weichzeichnen (GaussianBlur) zur Datenvervielfachung')
     args = parser.parse_args()
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     transform = transforms.Compose([transforms.Resize(256), transforms.CenterCrop(224), transforms.ToTensor(), transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
 
-    # Trainings-Phasen
-    for mode in [{"name": "CSV", "dir": None}, {"name": "FOLDER", "dir": args.classes_dir}]:
+    for mode in [{"name": "CSV", "dir": None}]:
         for species in ["cat", "dog"]:
             
+            # 1. Basis-Dataset laden, um den YOLO-Cache einmalig für alle Originalbilder zu erstellen
             detector = AnimalDetector(weights_path='yolov6s.pt', device=device)
-
-            full_dataset = CroppedAnimalDataset(os.path.join(args.data_dir, "labels.csv"), args.data_dir, species, detector, transform, mode["dir"])
+            base_dataset = CroppedAnimalDataset(os.path.join(args.data_dir, "labels.csv"), args.data_dir, species, detector, transform, mode["dir"])
             
             print(f"[INFO] Prüfe/Erstelle Bild-Cache für {species} ({mode['name']})...")
             with torch.no_grad():
-                for i in tqdm(range(len(full_dataset)), desc=f"Caching {species}"):
-                    _ = full_dataset[i]  # Zwingt YOLO, das Bild zuzuschneiden und zu speichern
+                for i in tqdm(range(len(base_dataset)), desc=f"Caching {species}"):
+                    _ = base_dataset[i]
             
             del detector
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
             
-            # Splitting & Loader
-            indices = list(range(len(full_dataset))); random.shuffle(indices)
-            train_idx, val_idx = indices[:int(0.8*len(indices))], indices[int(0.8*len(indices)):]
+            # 2. Sauberes Splitten auf den Original-Indizes (verhindert Data-Leakage!)
+            all_indices = list(range(len(base_dataset)))
+            random.shuffle(all_indices)
+            split_point = int(0.8 * len(all_indices))
+            train_idx = all_indices[:split_point]
+            val_idx = all_indices[split_point:]
             
-            # Initialisiere Modell (lädt automatisch .pth falls vorhanden)
+            # 3. NEU: Train- und Val-Dataset separat initialisieren. Nur das Train-Dataset wird vervielfacht!
+            train_dataset = CroppedAnimalDataset(
+                os.path.join(args.data_dir, "labels.csv"), args.data_dir, species, None, transform, mode["dir"],
+                indices=train_idx, mirror=args.mirror, blur=args.blur
+            )
+            val_dataset = CroppedAnimalDataset(
+                os.path.join(args.data_dir, "labels.csv"), args.data_dir, species, None, transform, mode["dir"],
+                indices=val_idx, mirror=False, blur=False  # Validierung bleibt immer original!
+            )
+            
+            print(f"[INFO] {species.upper()} - Originale Trainingsbilder: {len(train_idx)} -> Erweitert auf: {len(train_dataset)}")
+            print(f"[INFO] {species.upper()} - Validierungsbilder (rein): {len(val_dataset)}")
+
             weights_file = f"{species}_scratch_{args.exp_name}.pth"
             model = AnimalClassifier(weights_path=weights_file if os.path.exists(weights_file) else None, num_classes=NUM_CLASSES, device=device)
             
             optimizer = optim.AdamW(model.parameters(), lr=args.lr)
             scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs)
             
-            train_loader = DataLoader(torch.utils.data.Subset(full_dataset, train_idx), batch_size=8, shuffle=True)
-            val_loader = DataLoader(torch.utils.data.Subset(full_dataset, val_idx), batch_size=8)
+            # 4. NEU: Direkt an die DataLoader übergeben (Subset wird nicht mehr benötigt)
+            train_loader = DataLoader(train_dataset, batch_size=8, shuffle=True)
+            val_loader = DataLoader(val_dataset, batch_size=8)
             
             train_model(model, train_loader, val_loader, nn.CrossEntropyLoss(), optimizer, scheduler, torch.amp.GradScaler() if device == "cuda" else None, args.epochs, device, species, args.exp_name)
 
             print(f"[INFO] Bereinige GPU-Speicher nach Phase: {mode['name']} - {species}...")
-            
-            # Lösche die dicken Brocken aus dem RAM/VRAM
-            del model
-            del optimizer
-            del scheduler
-            del train_loader
-            del val_loader
-            
-            # Erzwinge Python-Garbage-Collection und leere den CUDA-Cache
+            del model, optimizer, scheduler, train_loader, val_loader
             gc.collect()
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()

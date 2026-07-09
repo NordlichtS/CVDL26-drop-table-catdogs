@@ -9,7 +9,7 @@
 export TMPDIR=$HOME/tmp
 mkdir -p $TMPDIR
 
-cd /home/st/sternberg/CVDL26-drop-table-catdogs
+cd /home/st/sternberg/CVDL26-drop-table-catdogs 
 
 source .venv/bin/activate
 

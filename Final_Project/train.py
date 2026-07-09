@@ -162,14 +162,24 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    detector = AnimalDetector(weights_path='yolov6s.pt', device=device)
-    
     transform = transforms.Compose([transforms.Resize(256), transforms.CenterCrop(224), transforms.ToTensor(), transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
 
     # Trainings-Phasen
     for mode in [{"name": "CSV", "dir": None}, {"name": "FOLDER", "dir": args.classes_dir}]:
         for species in ["cat", "dog"]:
+            
+            detector = AnimalDetector(weights_path='yolov6s.pt', device=device)
+
             full_dataset = CroppedAnimalDataset(os.path.join(args.data_dir, "labels.csv"), args.data_dir, species, detector, transform, mode["dir"])
+            
+            print(f"[INFO] Prüfe/Erstelle Bild-Cache für {species} ({mode['name']})...")
+            with torch.no_grad():
+                for i in tqdm(range(len(full_dataset)), desc=f"Caching {species}"):
+                    _ = full_dataset[i]  # Zwingt YOLO, das Bild zuzuschneiden und zu speichern
+            
+            del detector
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
             
             # Splitting & Loader
             indices = list(range(len(full_dataset))); random.shuffle(indices)

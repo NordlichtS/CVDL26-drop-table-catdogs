@@ -208,6 +208,8 @@ if __name__ == "__main__":
     parser.add_argument('--blur', action='store_true', help='Aktiviert Weichzeichnen zur Datenvervielfachung')
     # NEU: CropMix Flag registrieren
     parser.add_argument('--cropmix', action='store_true', help='Aktiviert CropMix (Multi-Scale Blending) zur Datenvervielfachung')
+    # NEU: Class Imbalance Flag registrieren
+    parser.add_argument('--balance_weights', action='store_true', help='Aktiviert die Klassen-Gewichtung für ungleichmäßig verteilte Datensätze')
     args = parser.parse_args()
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -256,30 +258,34 @@ if __name__ == "__main__":
             train_loader = DataLoader(train_dataset, batch_size=8, shuffle=True)
             val_loader = DataLoader(val_dataset, batch_size=8)
 
-            # Class Weights (Imbalance Handling)
-            train_labels = []
-            for idx in train_idx:
-                raw_label = int(base_dataset.data.iloc[idx, 1])
-                label = raw_label if species == "cat" else raw_label - 10
-                train_labels.append(label)
-                
-            class_counts = Counter(train_labels)
-            total_train_samples = len(train_labels)
-            
-            weights = []
-            for i in range(NUM_CLASSES):
-                count = class_counts.get(i, 0)
-                if count > 0:
-                    w = total_train_samples / (NUM_CLASSES * count)
-                else:
-                    w = 1.0 
-                weights.append(w)
-                
-            class_weights_tensor = torch.tensor(weights, dtype=torch.float).to(device)
-            formatted_weights = [f"{w:.2f}" for w in weights]
-            print(f"[INFO] {species.upper()} Class Weights: {formatted_weights}")
-            
-            criterion = nn.CrossEntropyLoss(weight=class_weights_tensor)
+            # Class Weights (Imbalance Handling) - nur wenn --balance_weights gesetzt ist
+            if args.balance_weights:
+                train_labels = []
+                for idx in train_idx:
+                    raw_label = int(base_dataset.data.iloc[idx, 1])
+                    label = raw_label if species == "cat" else raw_label - 10
+                    train_labels.append(label)
+
+                class_counts = Counter(train_labels)
+                total_train_samples = len(train_labels)
+
+                weights = []
+                for i in range(NUM_CLASSES):
+                    count = class_counts.get(i, 0)
+                    if count > 0:
+                        w = total_train_samples / (NUM_CLASSES * count)
+                    else:
+                        w = 1.0
+                    weights.append(w)
+
+                class_weights_tensor = torch.tensor(weights, dtype=torch.float).to(device)
+                formatted_weights = [f"{w:.2f}" for w in weights]
+                print(f"[INFO] {species.upper()} Class Weights (balance_weights aktiv): {formatted_weights}")
+
+                criterion = nn.CrossEntropyLoss(weight=class_weights_tensor)
+            else:
+                print(f"[INFO] {species.upper()} - Kein Class Balancing (--balance_weights nicht gesetzt), nutze Standard CrossEntropyLoss.")
+                criterion = nn.CrossEntropyLoss()
 
             train_model(model, train_loader, val_loader, criterion, optimizer, scheduler, torch.amp.GradScaler() if device == "cuda" else None, args.epochs, device, species, args.exp_name)
 

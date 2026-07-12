@@ -4,7 +4,7 @@
 #SBATCH --error=training_error_%A_%a.log    # Getrennte Fehler-Logs für jeden Run
 #SBATCH --partition=NvidiaAll               # Nutzt die Nvidia-Grafikkarten-Pools der LMU
 #SBATCH --array=1-7                         # Startet 7 Jobs parallel (Limit der LMU: max 15)
-#SBATCH --time=48:00:00                     # Maximale Laufzeit pro Job (Format: HH:MM:SS)
+#SBATCH --time=48:00:00                     # Erhöht auf 2 Tage, um Time-Limits abzufangen!
 
 # 1. In das richtige Projektverzeichnis wechseln
 export TMPDIR=$HOME/tmp
@@ -53,22 +53,15 @@ fi
 if [ $SLURM_ARRAY_TASK_ID -eq 6 ]; then
     LR="0.000001"
     EPOCHS="10000"
-    FLAGS="--mirror --blur"
-    EXP_NAME="lr:0.000001 ep:10000 30000DATA_mirror_blur"
+    FLAGS="--mirror --blur --cropmix" # <--- NEU: Hier testen wir alle 3 kombiniert!
+    EXP_NAME="lr:0.000001 ep:10000 30000DATA_mirror_blur_cropmix"
 fi
 
 if [ $SLURM_ARRAY_TASK_ID -eq 7 ]; then
     LR="0.000005"
     EPOCHS="200"
-    FLAGS="--mirror --blur"
-    EXP_NAME="lr:0.000005 ep:200 30000DATA_mirror_blur"
-fi
-
-if [ $SLURM_ARRAY_TASK_ID -eq 7 ]; then
-    LR="0.000005"
-    EPOCHS="200"
-    FLAGS="--mirror --blur"
-    EXP_NAME="lr:0.000005 ep:200 30000DATA_mirror_blur--first time without class-imbalance"
+    FLAGS="--cropmix"                 # <--- NEU: Hier testen wir CropMix exklusiv!
+    EXP_NAME="lr:0.000005 ep:200 30000DATA_cropmix"
 fi
 
 # 3. Den eigentlichen Befehl ausführen

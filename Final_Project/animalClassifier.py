@@ -54,8 +54,8 @@ class AnimalClassifier(nn.Module):
         # --- 3. DATEN-TRANSFORMATION FÜR INFERENZ ---
         self.transform = transforms.Compose([
             transforms.ToPILImage(),
-            transforms.Resize(int(384 * 1.14)),
-            transforms.CenterCrop(384),
+            transforms.Resize(256),
+            transforms.CenterCrop(224),
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
         ])

@@ -35,6 +35,9 @@ aktuelles Bild.jpg
 images
 .jpg
 classes
+CAM_Heat_Map_vor_class_imbalance
+CAM_Heat_Map
+
 
 
 # LaTeX temporary/build files

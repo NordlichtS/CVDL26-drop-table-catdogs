@@ -247,3 +247,10 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Streamlit
+.streamlit/secrets.toml
+
+# Eigene Ausschlüsse
+new_only_images/
+new_only_images.zip

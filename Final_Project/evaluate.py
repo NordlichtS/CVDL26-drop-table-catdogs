@@ -6,7 +6,8 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 NUM_CLASSES = 10
 
 # 1. Hier den Ordnerpfad angeben
-weights_dir = "weight_data/data_on8000pictures"
+weights_dir = "./"
+#weight_data/data_on30000pictures_third_run"
 
 # 2. Automatisch alle Dateien finden, die auf .pth enden
 if os.path.exists(weights_dir):

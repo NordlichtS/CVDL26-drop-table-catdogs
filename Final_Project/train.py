@@ -255,8 +255,45 @@ if __name__ == "__main__":
             # 4. NEU: Direkt an die DataLoader übergeben (Subset wird nicht mehr benötigt)
             train_loader = DataLoader(train_dataset, batch_size=8, shuffle=True)
             val_loader = DataLoader(val_dataset, batch_size=8)
+
+            # 5. NEU: CLASS WEIGHTS BERECHNEN (GEGEN IMBALANCE)
+            train_labels = []
+            for idx in train_idx:
+                # Wir holen die rohen Labels aus dem DataFrame für unseren Train-Split
+                raw_label = int(base_dataset.data.iloc[idx, 1])
+                # Hunde-Labels auf 0-9 normalisieren (wie in __getitem__)
+                label = raw_label if species == "cat" else raw_label - 10
+                train_labels.append(label)
+                
+            class_counts = Counter(train_labels)
+            total_train_samples = len(train_labels)
             
-            train_model(model, train_loader, val_loader, nn.CrossEntropyLoss(), optimizer, scheduler, torch.amp.GradScaler() if device == "cuda" else None, args.epochs, device, species, args.exp_name)
+            weights = []
+            for i in range(NUM_CLASSES):
+                count = class_counts.get(i, 0)
+                # Verhindere Division durch 0, falls eine Klasse komplett fehlt
+                if count > 0:
+                    w = total_train_samples / (NUM_CLASSES * count)
+                else:
+                    w = 1.0 
+                weights.append(w)
+                
+            # Tensor erstellen und auf die GPU/CPU schieben
+            class_weights_tensor = torch.tensor(weights, dtype=torch.float).to(device)
+            
+            # Ausgabe zur Kontrolle im Log
+            formatted_weights = [f"{w:.2f}" for w in weights]
+            print(f"[INFO] {species.upper()} Class Weights: {formatted_weights}")
+            
+            # Dem Criterion (Loss-Funktion) die Gewichte übergeben
+            criterion = nn.CrossEntropyLoss(weight=class_weights_tensor)
+            # ---------------------------------------------------------
+
+            train_model(model, train_loader, val_loader, criterion, 
+            optimizer, 
+            scheduler, 
+            torch.amp.GradScaler() if device == "cuda" else None, 
+            args.epochs, device, species, args.exp_name)
 
             print(f"[INFO] Bereinige GPU-Speicher nach Phase: {mode['name']} - {species}...")
             del model, optimizer, scheduler, train_loader, val_loader

@@ -18,28 +18,28 @@ source .venv/bin/activate
 if [ $SLURM_ARRAY_TASK_ID -eq 1 ]; then
     LR="0.00001"
     EPOCHS="100"
-    FLAGS=""
+    FLAGS="--balance_weights"
     EXP_NAME="lr:0.00001 ep:100 30000DATA"
 fi
 
 if [ $SLURM_ARRAY_TASK_ID -eq 2 ]; then
     LR="0.000001"
     EPOCHS="100"
-    FLAGS=""
+    FLAGS="--balance_weights"
     EXP_NAME="lr:0.000001 ep:100 30000DATA"
 fi
 
 if [ $SLURM_ARRAY_TASK_ID -eq 3 ]; then
     LR="0.0000001"
     EPOCHS="100"
-    FLAGS=""
+    FLAGS="--balance_weights"
     EXP_NAME="lr:0.0000001 ep:100 30000DATA"
 fi
 
 if [ $SLURM_ARRAY_TASK_ID -eq 4 ]; then
     LR="0.000001"
     EPOCHS="200"
-    FLAGS=""
+    FLAGS="--balance_weights"
     EXP_NAME="lr:0.000001 ep:200 30000DATA"
 fi
 
@@ -53,7 +53,7 @@ fi
 if [ $SLURM_ARRAY_TASK_ID -eq 6 ]; then
     LR="0.000001"
     EPOCHS="10000"
-    FLAGS="--mirror --blur --cropmix" # <--- NEU: Hier testen wir alle 3 kombiniert!
+    FLAGS="--mirror --blur --cropmix --balance_weights" # <--- NEU: Hier testen wir alle 3 kombiniert!
     EXP_NAME="lr:0.000001 ep:10000 30000DATA_mirror_blur_cropmix"
 fi
 

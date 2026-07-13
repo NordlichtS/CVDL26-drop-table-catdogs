@@ -116,9 +116,11 @@ class CroppedAnimalDataset(Dataset):
         
         return self.transform(crop_image), label
 
-def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler, scaler, num_epochs, device, species, exp_name):
+def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler, scaler, num_epochs, device, species, exp_name, patience):
     save_path = f"{species}_scratch_{exp_name}.pth"
-    
+    best_val_acc = 0.0
+    patience_counter = 0
+
     for epoch in range(1, num_epochs + 1):
         model.train()
         train_loss, train_correct, train_total = 0.0, 0, 0
@@ -184,6 +186,8 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
             else:
                 per_class_acc[target_classes[i]] = 0.0
         
+        # NEU: Nur speichern, wenn die Validierungs-Accuracy besser geworden ist!
+        
         current_lr = optimizer.param_groups[0]['lr']
         log_msg = (f"Epoch [{epoch:03d}/{num_epochs}] | Species: {species.upper()} | LR: {current_lr:.6f} | "
                    f"Train Loss: {epoch_train_loss:.4f} - Acc: {epoch_train_acc:.2f}% | "
@@ -192,11 +196,26 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
 
         scheduler.step()
         
-        torch.save({
-            "epoch": epoch, "model_state": model.state_dict(), "val_acc": epoch_val_acc,
-            "val_loss": epoch_val_loss, "lr": current_lr, "per_class_acc": per_class_acc
-        }, save_path)
+        if epoch_val_acc > best_val_acc:
+            best_val_acc = epoch_val_acc
+            patience_counter = 0
+            print(f"--> [SAVE] Neue beste Val-Acc erreicht: {best_val_acc:.2f}%! Speichere Gewichte...")
+            
+            torch.save({
+                "epoch": epoch,
+                "model_state": model.state_dict(),
+                "val_acc": epoch_val_acc,
+                "val_loss": epoch_val_loss,
+                "lr": current_lr,
+                "per_class_acc": per_class_acc
+            }, save_path)
+        else:
+            patience_counter += 1
+            print(f"--> [INFO] Val-Acc ({epoch_val_acc:.2f}%) hat sich nicht verbessert (Best: {best_val_acc:.2f}%). Counter: {patience_counter}/{patience}") 
 
+            if patience_counter >= patience:
+                print(f"\n==> [EARLY STOPPING] Seit {patience} Epochen keine Verbesserung mehr. Breche Training ab!")
+                break  # Beendet die 'for epoch' Schleife vorzeitig
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -204,6 +223,7 @@ if __name__ == "__main__":
     parser.add_argument('--exp_name', type=str, default='default'); parser.add_argument('--data_dir', type=str, default='images')
     parser.add_argument('--classes_dir', type=str, default='./classes')
     
+    parser.add_argument('--patience', type=int, default=10, help='Epochen ohne Verbesserung vor Early Stopping')
     parser.add_argument('--mirror', action='store_true', help='Aktiviert das Spiegeln zur Datenvervielfachung')
     parser.add_argument('--blur', action='store_true', help='Aktiviert Weichzeichnen zur Datenvervielfachung')
     # NEU: CropMix Flag registrieren
@@ -214,7 +234,7 @@ if __name__ == "__main__":
     transform = transforms.Compose([transforms.Resize(256), transforms.CenterCrop(224), transforms.ToTensor(), transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
 
     for mode in [{"name": "CSV", "dir": None}]:
-        for species in ["cat", "dog"]:
+        for species in ["dog", "cat"]:
             
             detector = AnimalDetector(weights_path='yolov6s.pt', device=device)
             base_dataset = CroppedAnimalDataset(os.path.join(args.data_dir, "labels.csv"), args.data_dir, species, detector, transform, mode["dir"])
@@ -247,7 +267,7 @@ if __name__ == "__main__":
             print(f"[INFO] {species.upper()} - Originale Trainingsbilder: {len(train_idx)} -> Erweitert auf: {len(train_dataset)}")
             print(f"[INFO] {species.upper()} - Validierungsbilder (rein): {len(val_dataset)}")
 
-            weights_file = f"{species}_scratch_{args.exp_name}.pth"
+            weights_file = f"{species}_scratch.pth"
             model = AnimalClassifier(weights_path=weights_file if os.path.exists(weights_file) else None, num_classes=NUM_CLASSES, device=device)
             
             optimizer = optim.AdamW(model.parameters(), lr=args.lr)
@@ -281,7 +301,7 @@ if __name__ == "__main__":
             
             criterion = nn.CrossEntropyLoss(weight=class_weights_tensor)
 
-            train_model(model, train_loader, val_loader, criterion, optimizer, scheduler, torch.amp.GradScaler() if device == "cuda" else None, args.epochs, device, species, args.exp_name)
+            train_model(model, train_loader, val_loader, criterion, optimizer, scheduler, torch.amp.GradScaler() if device == "cuda" else None, args.epochs, device, species, args.exp_name, args.patience)
 
             print(f"[INFO] Bereinige GPU-Speicher nach Phase: {mode['name']} - {species}...")
             del model, optimizer, scheduler, train_loader, val_loader

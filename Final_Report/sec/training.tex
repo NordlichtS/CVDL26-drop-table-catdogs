@@ -56,4 +56,32 @@ Ein Rechenbeispiel, warum das funktioniert:Nehmen wir an, du hast insgesamt 1000
 criterion = nn.CrossEntropyLoss(weight=class_weights_tensor)
 PyTorch kann mit normalen Python-Listen während des Trainings nichts anfangen, weil das Ganze auf der GPU berechnet werden muss. Deshalb machen wir daraus einen torch.tensor und schieben ihn mit .to(device) auf die Grafikkarte.Diesen Tensor übergeben wir als weight an nn.CrossEntropyLoss().Schritt 4: Der Effekt während des TrainingsWenn dein Modell jetzt trainiert und ein Bild analysiert, läuft folgendes ab:Das Modell rät die Klasse.Es liegt falsch.Die Loss-Funktion berechnet den "Standard-Fehler" (sagen wir, der Fehlerwert ist mathematisch $1.0$).Jetzt kommen die Gewichte ins Spiel: * War das Bild von der häufigen Rasse A, rechnet der Loss: $1.0 \cdot 0.2 = \mathbf{0.2}$. Das Modell denkt sich: "Ah, nicht so wild."War das Bild von der seltenen Rasse B, rechnet der Loss: $1.0 \cdot 5.0 = \mathbf{5.0}$. Das ist ein gigantischer Fehler! Das Modell kriegt richtig "Ärger" (einen hohen Loss) und die Gewichte im neuronalen Netz verändern sich beim Backpropagation-Schritt drastisch, um diesen Fehler beim nächsten Mal unbedingt zu vermeiden.
 
+
 Weiterer Versuch AI bilder zu generieren oder zu downloaden ist gescheitert bzgl. arbeitsaufwand... -> nicht vorhandener datensätze online
+
+
+Ja, das ist absolut normal und gehört sogar zum Standard-Workflow im Machine Learning! Was du da beschreibst, nennt sich in der Praxis Checkpoint Saving (bzw. Early Stopping) in Kombination mit Hyperparameter-Tuning.
+
+Dass Modelle mit mehr Epochen plötzlich wieder schlechter werden, ist ein altbekanntes Phänomen. Hier ist die Erklärung, warum das passiert und warum dein Vorgehen genau richtig ist:
+
+Warum mehr Epochen nicht immer besser sind
+Wenn du ein Modell länger trainierst, heißt das nicht automatisch, dass es schlauer wird. Oft passiert das Gegenteil:
+
+1. Overfitting (Überanpassung)
+Das ist der häufigste Grund. Ab einem gewissen Punkt lernt das Modell die Trainingsdaten einfach auswendig, anstatt die zugrundeliegenden Muster zu verstehen.
+
+Die Folge: Die Accuracy auf den Trainingsdaten steigt weiter, aber die Accuracy auf den Validierungsdaten (die das Modell nicht kennt) stürzt ab.
+
+2. Zu große Lernrate (Learning Rate)
+Wenn deine Lernrate nicht mit der Zeit kleiner wird (Learning Rate Decay), kann es sein, dass das Modell am Ende des Trainings um das Optimum "herumspringt" oder sich komplett aus einem guten Zustand herauskatapultiert.
+
+Wie Profis das lösen (Dein Ansatz automatisiert)
+Genau das, was du händisch machst (den besten Run heraussuchen), automatisiert man im ML-Alltag über zwei Mechanismen:
+
+Model Checkpointing
+Du speicherst während des Trainings nach jeder Epoche das Modell ab – aber nur dann, wenn die Validierungs-Accuracy besser ist als der bisherige Bestwert.
+
+Am Ende von 100 Epochen war vielleicht Epoche 42 die beste. Durch das Checkpointing wirfst du die verschlechterten Gewichte von Epoche 43–100 einfach weg und lädst den "Checkpoint" aus Epoche 42.
+
+Early Stopping
+Du sagst dem Code: "Wenn sich die Validierungs-Accuracy für 10 Epochen am Stück nicht verbessert, brich das Training sofort ab." Das spart Zeit und Rechenpower (und Slurm-Credits!).

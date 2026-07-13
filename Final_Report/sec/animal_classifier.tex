@@ -1,0 +1,7 @@
+\section{Animal Classifier}
+\label{sec:animal_classifier}
+
+
+Learnings:
+Do not mess with wrong pixel size:
+Wenn ein Convolutional Neural Network (wie dein efficientnet_v2_s) auf kleinen $224 \times 224$ Bildausschnitten trainiert wird, lernt es Filter für Objekte in einer bestimmten relativen Größe. Jagst du bei der Evaluierung oder bei Grad-CAM plötzlich $384 \times 384$ Bilder durch, kommt es zu einem sogenannten Resolution Shift. Die gelernten Filter passen nicht mehr optimal zu den Strukturen, was die Accuracy künstlich verschlechtern kann.Tipp: Passe die Transformationen in der animalClassifier.py so an, dass sie exakt den $224 \times 224$ Pixeln aus dem Training entsprechen (oder trainiere in train.py direkt auf 384, was allerdings mehr GPU-Speicher kostet).

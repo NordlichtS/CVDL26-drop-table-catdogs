@@ -1,0 +1,16 @@
+overfitting vermeiden:
+RandomHorizontalFLip
+RondomRotation
+Brightness, Kontrast
+
+-> NN should never see the exact same picture twice!
+
+increasing Dropouts --> enforced to learn and not to trust on super-neurons!!!
+
+
+vergleiche train-acc mit val acc -> abbrechen wenn über 7%
+
+wenn nach 10 epochen nicht sich verändert +0.1% dann brich ab
+
+
+Dune erkennen quelle: https://www.mdpi.com/1424-8220/24/15/4974

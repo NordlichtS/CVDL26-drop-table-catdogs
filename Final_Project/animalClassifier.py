@@ -15,9 +15,14 @@ class AnimalClassifier(nn.Module):
         # weights=None garantiert, dass NIEMALS vortrainierte ImageNet-Gewichte geladen werden!
         self.backbone = efficientnet_v2_s(weights=None)
         
-        # Den letzten Klassifikations-Layer auf deine 10 Klassen anpassen
+        # Den letzten Klassifikations-Layer anpassen UND Dropout erhöhen
         in_features = self.backbone.classifier[1].in_features
-        self.backbone.classifier[1] = nn.Linear(in_features, num_classes)
+        
+        # Wir ersetzen den gesamten Classifier-Block durch unseren eigenen:
+        self.backbone.classifier = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True), # <-- HIER IST DEIN NEUER DROPOUT (50%)
+            nn.Linear(in_features, num_classes)
+        )
         
         # --- 2. GEWICHTE LADEN (Nur wenn die Datei im Hauptordner existiert) ---
         # --- 2. GEWICHTE INTELLIGENT LADEN ---

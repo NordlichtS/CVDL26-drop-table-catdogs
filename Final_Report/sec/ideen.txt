@@ -3,7 +3,7 @@ RandomHorizontalFLip
 RondomRotation
 Brightness, Kontrast
 
--> NN should never see the exact same picture twice!
+-> Neuralnetwork should never see the exact same picture twice!
 
 increasing Dropouts --> enforced to learn and not to trust on super-neurons!!!
 

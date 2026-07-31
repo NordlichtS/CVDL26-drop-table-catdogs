@@ -114,54 +114,70 @@ class Model(nn.Module):
 #        self.compare_model = CompareClassifier(device=self.device)
 
     def forward(self, image: Image.Image) -> int:
-        # saving PIL-Image as a temporary File
+        import time
+        t_start = time.perf_counter()
 
-        
-        # 1. PIL-Image (RGB) zu Numpy-Array konvertieren
+        # ---------------------------------------------------------
+        # 1. Preprocessing (PIL zu BGR)
+        # ---------------------------------------------------------
         image_np = np.array(image)
-        
-        # 2. RGB zu BGR konvertieren (Das Format, das OpenCV/Dein Detektor erwartet)
         img_bgr = image_np[:, :, ::-1].copy()
         
-        # 3. Direkt das Array übergeben (keine Festplatte involviert!)
+        t_prep_end = time.perf_counter()
+        prep_time = t_prep_end - t_start
+
+        # ---------------------------------------------------------
+        # 2. Detektor (YOLO)
+        # ---------------------------------------------------------
         resized_crop_np, species, meta = self.animal_detector.detect_largest_animal(img_bgr)
+        
+        t_yolo_end = time.perf_counter()
+        yolo_time = t_yolo_end - t_prep_end
 
-
+        # REJECT-FALL: Wenn YOLO kein Tier findet
         if meta is None or species == "neither":
+            print(f"[REJECT] Kein Zieltier gefunden (YOLO sagt 'neither' oder Fehler). "
+                  f"Zeit: [Prep: {prep_time:.4f}s | YOLO: {yolo_time:.4f}s]")
             return REJECT
         
-#        comp_class, comp_conf = self.compare_model.predict_and_save(resized_crop_np)
-        print(f"[VERGLEICH] Das vortrainierte Modell sagt: {comp_class} (Sicherheit: {comp_conf:.2%})")
-        # ---------------------------------------
+        # ---------------------------------------------------------
+        # 3. Klassifizierung (EfficientNet / Dein Scratch-Modell)
+        # ---------------------------------------------------------
+        t_class_start = time.perf_counter()
 
-        #TODO: run the trained-models
         if species == "cat":
             output = self.cat_classifier(resized_crop_np)
             probs = torch.nn.functional.softmax(output, dim=1)
             confidence, local_idx = torch.max(probs, dim=1)
             
-            print(f"[SCRATCH] Vorschlag (Katze): {CLASSES[local_idx.item()]} "
-                  f"(Sicherheit: {confidence.item():.2%})")
+            t_class_end = time.perf_counter()
+            class_time = t_class_end - t_class_start
+            total_time = t_class_end - t_start
+            
+            print(f"[SCRATCH] Vorschlag (Katze): {CLASSES[local_idx.item()]} (Sicherheit: {confidence.item():.2%})")
+            print(f"[PROFILING] Prep: {prep_time:.4f}s | YOLO: {yolo_time:.4f}s | Classifier: {class_time:.4f}s | Gesamt: {total_time:.4f}s")
             
             return local_idx.item()
 
         elif species == "dog":
-            #run -- model-dog
             output = self.dog_classifier(resized_crop_np)
-            
-            # --- HIER EINFÜGEN ---
             probs = torch.nn.functional.softmax(output, dim=1)
             confidence, local_idx = torch.max(probs, dim=1)
             
+            t_class_end = time.perf_counter()
+            class_time = t_class_end - t_class_start
+            total_time = t_class_end - t_start
+            
             # Index + 10 für Hunde
-            print(f"[SCRATCH] Vorschlag (Hund): {CLASSES[local_idx.item() + 10]} "
-                  f"(Sicherheit: {confidence.item():.2%})")
+            print(f"[SCRATCH] Vorschlag (Hund): {CLASSES[local_idx.item() + 10]} (Sicherheit: {confidence.item():.2%})")
+            print(f"[PROFILING] Prep: {prep_time:.4f}s | YOLO: {yolo_time:.4f}s | Classifier: {class_time:.4f}s | Gesamt: {total_time:.4f}s")
             
             return local_idx.item() + 10
 
-
+        # FALLBACK-FALL: Wenn der Detektor eine unerwartete Spezies liefert
+        print(f"[REJECT / FALLBACK] Unbekannte Spezies erkannt: '{species}'. "
+              f"Zeit: [Prep: {prep_time:.4f}s | YOLO: {yolo_time:.4f}s]")
         return random.randint(-1, NUM_CLASSES - 1)
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)

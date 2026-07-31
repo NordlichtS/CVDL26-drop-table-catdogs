@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # CVDL26 Drop Table Cat Dogs
 
 Fine-grained animal recognition project for the CVDL SEP challenge.
@@ -190,3 +191,9 @@ The batch helper `run_visualization_cam.sh` repeatedly generates heatmaps for ra
 - Keep only the final training and inference paths in the shipped archive, or label backup scripts as archival so they are not mistaken for the primary workflow.
 - Verify the final submission still runs from a clean checkout with the documented weight files and no hidden local-path assumptions.
 - Keep a source URL list for any images collected from the internet, and record the exact preprocessing commands used to build `images/`.
+=======
+# CVDL26-drop-table-catdogs
+SEP CVDL collab team 
+# adsf
+# hello
+>>>>>>> df5368e40d2ae9c1469361e65a07d5aed07825c2

@@ -1,0 +1,70 @@
+\section{Dataset}
+\label{sec:dataset}
+
+Empirical studies evaluate how pre-trained deep 
+convolutional networks and vision transformers 
+perform across varying target dataset sizes and 
+fine-tuning strategies (Abou Baker et al., 2022). 
+Their findings highlight that pre-trained feature 
+extractors achieve high accuracy even when training 
+data per class is restricted by 50 to 200 samples.
+
+Due tue this, we planned to firstly use the Dog and 
+Cat API Dataset /cite{thecatapi} which boast to have 60k+ Images, Breeds and Facts. We where able to pull 2764 pictures of cats
+and visually verified 100 per Breeds for cats each. When we tried to do the same for TheDogApi, we struggled heavily with the Breeds Parameter.
+As the API is not very well structured and we did not want to sort all the Pictures by hand, we looked for another source of dog pictures. We wanted to have a clean
+dataset to train our model on and did not want to start with a sketchy and not trustworthy dataset even thought it vaunts with pictures of over 650 breeds.
+/cite{thedogapi}.
+
+Due to this we proceeded to browse the Internet and tried to build a webscraper. Our first pictures where very promising in regards of Dogs, but when we started the training, 
+and verified the results visually, we realised that the Breed "Bombay" was in fact a picture of the Gin Bombay. Due to this we erased all pictures of our 6000 heavy dataset of breeds 
+pulled from the free Internet as we could not verify them at scale again and where unsure in regards of the rest of the breeds.
+
+Our next test to get the expected 4000 pictures of cats and dogs was via the Standord Dogs Dataset, which boasts to have 20580 images of dogs and cats and 150-200 images per 
+breed, which fulfilled our requirement completely /cite{khosla2011stanford}. 
+After verifying this dataset, we where satisfied with the amount of pictures and the quality of the labeling. 
+The main Problem was that the Standford Dogs Dataset was just focused on Dog Breeds and the Shiba_Inu Breed was not represented. Otherwise we got all neccesary pictures from Boxer 151 pictures to Samoyed (218) Pictures 
+from this Dataset.
+
+To increase the Breeds even further and as we found the Oxford Cats and Dog Dataset in the meantime, we increased our training dataset by this even further.
+This Dataset did not contain the Cat Breeds Tabby as well as Tiger Cat and it did not contain the Dog Breeds of Golden Retriever, German Shepherd, Siberian Husky, Dalmatian and Rottweiler.
+
+In the end we where still short on specific breeds and did a last manual pull for the Breeds Birman, Boxer, German Shepherd as well as Dalmatian and enriched the
+dataset with a validated and highly recommended file from kaggle. 
+In the End our dataset contains 35423 pictures of cats and dogs as seen in the Graph below. 
+
+\begin{table}[htbp]
+\centering
+\caption{Dataset Distribution by Class}
+\label{tab:dataset_distribution}
+\begin{tabular}{r l c r}
+\hline
+\textbf{Class ID} & \textbf{Class Name} & \textbf{Species} & \textbf{Image Count} \\
+\hline
+0  & Abyssinian         & Cat & 668 \\
+1  & Bengal             & Cat & 2,888 \\
+2  & Birman             & Cat & 575 \\
+3  & Bombay             & Cat & 2,194 \\
+4  & British Shorthair  & Cat & 961 \\
+5  & Maine Coon         & Cat & 1,774 \\
+6  & Ragdoll            & Cat & 3,096 \\
+7  & Sphynx             & Cat & 546 \\
+8  & Tabby              & Cat & 3,012 \\
+9  & Tiger Cat          & Cat & 2,256 \\
+\hline
+10 & Beagle             & Dog & 1,083 \\
+11 & Pug                & Dog & 1,598 \\
+12 & Boxer              & Dog & 878 \\
+13 & Shiba Inu          & Dog & 1,243 \\
+14 & Samoyed            & Dog & 3,045 \\
+15 & Golden Retriever   & Dog & 5,805 \\
+16 & German Shepherd    & Dog & 667 \\
+17 & Siberian Husky     & Dog & 1,736 \\
+18 & Dalmatian          & Dog & 718 \\
+19 & Rottweiler         & Dog & 680 \\
+\hline
+\textbf{Total} & & & \textbf{35,423} \\
+\hline
+\end{tabular}
+\end{table}
+

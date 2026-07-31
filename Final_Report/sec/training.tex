@@ -85,3 +85,13 @@ Am Ende von 100 Epochen war vielleicht Epoche 42 die beste. Durch das Checkpoint
 
 Early Stopping
 Du sagst dem Code: "Wenn sich die Validierungs-Accuracy für 10 Epochen am Stück nicht verbessert, brich das Training sofort ab." Das spart Zeit und Rechenpower (und Slurm-Credits!).
+
+
+wichtig: Bei jeder Epoche noch eingebaut ob neue train acc > als alte train acc und ob es nicht zu weit auseinanderdriftet um overfitting zu vermeiden. Wenn 
+
+Overfitting vermeiden:
+-> Viele Bilder
+-> viele Epochen
+-> Geringe learning curve
+-> Dropouts
+-> Cropmix

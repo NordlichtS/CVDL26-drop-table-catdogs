@@ -2,8 +2,56 @@
 \label{sec:marc}
 
 
-Blank text
-Describe your progess here
+Text for the Pipeline and Dataset Sources:
+
+Our pipeline for the “cat and dog breed recognition challenge” follows a two stage detect then classify approach. A YOLOv6s detector (Li et al., 2022) first localizes the largest cat or dog object in the image, after which EfficientNetV2-S (Tan & Le, 2021) classifies the resulting crop into one of 20 breeds or rejects the image if no target animal is detected. For training, we implemented mirroring and blur as well as class reweighting to counteract the imbalance in our collected data. That’s because we had a picture imbalance when it comes to certain cat and dog breeds. We used several Kaggle datasets, Oxford-IIIT Pet and additional 4.542 images to fill up some classes that didn’t have enough pictures. For the XAI analysis, we use Grad-CAM (Selvaraju et al., 2017) to visualize the image regions. We searched for other methods, but this separation of detection and classification seemed to be an established practice for fine grained visual categorization research. Even the introduction of Oxford-IIIT Pet, combined a shape model for localizing the animal's head with a separate appearance model for the fur texture (Parkhi et al., 2012) fundamentally the same idea of “localize first, then discriminate.” In order to compare our work with other approaches, a recent survey on deep-learning-based Fine-Grained Visual Categorization, describes exactly this approach as its paradigm of “localization-classification subnetworks,” in which a localization network identifies relevant image regions before a downstream classification network makes the fine-grained decision (Wei et al., 2021). Works such as Part-based R-CNNs (Zhang et al., 2014) follow the same path, though there with separate detectors for individual body parts rather than a single object crop as in our case. A second, equally common strand of FGVC research forgoes an explicit detector and instead learns localization and classification jointly, end-to-end. Bilinear CNN models (Lin et al., 2015), for instance,
+combine two feature extractors via an outer product without requiring separate bounding boxes, more recent work integrates efficient localization modules directly into the classification network (Hanselmann & Ney, 2020), or fuses a single-stage detector with transformer encoders into a single
+model. Our two-stage design, seems to be more modular, easier to debug, and allows separate error analysis for detection and classification. Our choice of networks is within common practice. YOLO variants are the standard for fast, real-time object detection (Li et al., 2022), while EfficientNet architectures are often preferred over transformer backbones on smaller, self-curated datasets (Tan & Le, 2021). Grad-CAM remains one of the most widely used XAI methods across a wide range of domains (Selvaraju et al., 2017).
+
+
+Sources:
+[1] Li, C. et al. (2022). YOLOv6: A Single-Stage Object Detection Framework for Industrial Applications.
+arXiv:2209.02976.
+
+[2] Tan, M., Le, Q. (2021). EfficientNetV2: Smaller Models and Faster Training. Proceedings of the 38th
+International Conference on Machine Learning (ICML), PMLR 139:10096–10106.
+
+[3] Selvaraju, R. R., Cogswell, M., Das, A., Vedantam, R., Parikh, D., Batra, D. (2017). Grad-CAM: Visual
+Explanations from Deep Networks via Gradient-Based Localization. Proceedings of the IEEE International
+Conference on Computer Vision (ICCV), 618–626.
+
+[4] Parkhi, O. M., Vedaldi, A., Zisserman, A., Jawahar, C. V. (2012). Cats and Dogs. IEEE Conference on
+Computer Vision and Pattern Recognition (CVPR).
+
+[5] Zhang, N., Donahue, J., Girshick, R., Darrell, T. (2014). Part-Based R-CNNs for Fine-Grained Category
+Detection. European Conference on Computer Vision (ECCV).
+
+[6] Lin, T.-Y., RoyChowdhury, A., Maji, S. (2015). Bilinear CNN Models for Fine-Grained Visual Recognition.
+Proceedings of the IEEE International Conference on Computer Vision (ICCV), 1449–1457.
+[7] Hanselmann, H., Ney, H. (2020). Fine-Grained Visual Classification with Efficient End-to-end Localization.
+arXiv:2005.05123.
+
+[8] Wei, X.-S. et al. (2021). Fine-Grained Image Analysis with Deep Learning: A Survey. arXiv:2111.06119.
+
+
+
+Dataset Sources:
+1. Oxford-IIIT Pet Dataset
+https://www.robots.ox.ac.uk/~vgg/data/pets/
+
+2. Stanford Dogs Dataset
+http://vision.stanford.edu/aditya86/ImageNetDogs/
+
+3. Kaggle – Dog Breed Identification
+https://www.kaggle.com/c/dog-breed-identification/data
+
+4. Kaggle – Cat Breeds Dataset
+https://www.kaggle.com/datasets (Suche nach "cat breeds dataset" – es gibt mehrere von der Community hochgeladene Versionen, daher vorher die Dataset-Beschreibung prüfen bzgl. Anzahl Rassen/Bilder)
+
+5. Tsinghua Dogs Dataset
+https://cg.cs.tsinghua.edu.cn/ThuDogs/
+
+
 
 
 sources like this!

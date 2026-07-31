@@ -10,22 +10,23 @@ extractors achieve high accuracy even when training
 data per class is restricted by 50 to 200 samples.
 
 Due tue this, we planned to firstly use the Dog and 
-Cat API Dataset /cite{thecatapi} which boast to have 60k+ Images, Breeds and Facts. We where able to pull 2764 pictures of cats
+Cat API Dataset \cite{thecatapi} which boast to have 60k+ Images, Breeds and Facts. We where able to pull 2764 pictures of cats
 and visually verified 100 per Breeds for cats each. When we tried to do the same for TheDogApi, we struggled heavily with the Breeds Parameter.
 As the API is not very well structured and we did not want to sort all the Pictures by hand, we looked for another source of dog pictures. We wanted to have a clean
 dataset to train our model on and did not want to start with a sketchy and not trustworthy dataset even thought it vaunts with pictures of over 650 breeds.
-/cite{thedogapi}.
+\cite{thedogapi}.
 
 Due to this we proceeded to browse the Internet and tried to build a webscraper. Our first pictures where very promising in regards of Dogs, but when we started the training, 
 and verified the results visually, we realised that the Breed "Bombay" was in fact a picture of the Gin Bombay. Due to this we erased all pictures of our 6000 heavy dataset of breeds 
 pulled from the free Internet as we could not verify them at scale again and where unsure in regards of the rest of the breeds.
 
 Our next test to get the expected 4000 pictures of cats and dogs was via the Standord Dogs Dataset, which boasts to have 20580 images of dogs and cats and 150-200 images per 
-breed, which fulfilled our requirement completely /cite{khosla2011stanford}. 
+breed, which fulfilled our requirement completely \cite{khosla2011stanford}. 
 After verifying this dataset, we where satisfied with the amount of pictures and the quality of the labeling. 
-The main Problem was that the Standford Dogs Dataset was just focused on Dog Breeds and the Shiba_Inu Breed was not represented. Otherwise we got all neccesary pictures from Boxer 151 pictures to Samoyed (218) Pictures 
-from this Dataset.
-
+The main Problem was that the Standford Dogs Dataset was just focused on Dog Breeds and the Shiba Inu Breed was not represented. Otherwise we got all neccesary 
+pictures from Boxer 151 pictures to Samoyed 218 Pictures 
+from this Dataset. 
+ 
 To increase the Breeds even further and as we found the Oxford Cats and Dog Dataset in the meantime, we increased our training dataset by this even further.
 This Dataset did not contain the Cat Breeds Tabby as well as Tiger Cat and it did not contain the Dog Breeds of Golden Retriever, German Shepherd, Siberian Husky, Dalmatian and Rottweiler.
 
@@ -67,4 +68,3 @@ In the End our dataset contains 35423 pictures of cats and dogs as seen in the G
 \hline
 \end{tabular}
 \end{table}
-

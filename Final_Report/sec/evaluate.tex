@@ -19,7 +19,7 @@ To evaluate spatial attention under optimal model convergence, we analyzed corre
     \label{fig:cam_bestcase}
 \end{figure}
 
-The overlay map in Figure \ref{fig:cam_bestcase} reveals that peak activation intensity (red and deep orange zones) is strictly localized on the animal's central torso and thick coat structure. Crucially, complex contextual elements—such as the moving legs of the human handler on the left or the wooden fence lattice in the background—receive virtually zero spatial weight (cool blue region). This confirms that the fine-tuned model prioritizes domain-invariant, morphological breed characteristics rather than relying on spatial environment shortcuts.
+The overlay map reveals that peak activation intensity (red and deep orange zones) is strictly localized on the animal's central torso and thick coat structure. Crucially, complex contextual elements—such as the moving legs of the human handler on the left or the wooden fence lattice in the background—receive virtually zero spatial weight (cool blue region). This confirms that the fine-tuned model prioritizes domain-invariant, morphological breed characteristics rather than relying on spatial environment shortcuts.
 
 \subsubsection{Worst-Case Evaluation: Contextual Shortcut Learning}
 To contrast this behavior, we conducted xAI analysis on an unregularized baseline model trained without spatial data augmentation. Figure \ref{fig:cam_worstcase} demonstrates a severe failure mode where the baseline network erroneously predicts \texttt{Pug} with a high confidence of $87.66\%$ on a non-Pug target.
@@ -31,7 +31,19 @@ To contrast this behavior, we conducted xAI analysis on an unregularized baselin
     \label{fig:cam_worstcase}
 \end{figure}
 
-As shown by the heatmap in Figure \ref{fig:cam_worstcase}, spatial focus is almost entirely shifted away from the animal subject towards non-relevant background textures and floor boundaries. This high-confidence error illustrates a classical case of \textit{shortcut learning} \cite{geirhos2020shortcut}: instead of learning invariant semantic features of dog breeds, the unregularized backbone memorized spurious correlations between background geometries and the target logit.
+As shown by the corresponding heatmap, spatial focus is almost entirely shifted away from the animal subject towards non-relevant background textures and floor boundaries. This high-confidence error illustrates a classical case of \textit{shortcut learning} \cite{geirhos2020shortcut}: instead of learning invariant semantic features of dog breeds, the unregularized backbone memorized spurious correlations between background geometries and the target logit.
+
+\subsubsection{Impact of Data Scarcity: Human-Presence Bias}
+To investigate how limited training data diversity affects feature representation, we analyzed early model checkpoints trained on smaller dataset splits. Under data scarcity, deep architectures tend to memorize spurious co-occurrences rather than learning invariant biological structures.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\columnwidth]{../CAM_Heat_Map/panel_08217_auswendig.jpg}
+    \caption{Grad-CAM visualization demonstrating human-presence bias due to data scarcity. The ground-truth target (\texttt{Samoyed}) is completely ignored; instead, spatial attention focuses on the human handler, leading to a high-confidence misclassification as \texttt{Shiba\_Inu} ($83.3\%$).}
+    \label{fig:cam_human_bias}
+\end{figure}
+
+As depicted in Figure \ref{fig:cam_human_bias}, a striking failure mode occurs on a \texttt{Samoyed} instance. Despite the target dog being clearly visible on the right side of the frame, the model's spatial attention (red and orange activation zones) is concentrated entirely on the human handler's torso and attire. This focus results in a confident misclassification as \texttt{Shiba\_Inu} ($83.3\%$). This behavior illustrates the "Clever Hans" effect \cite{lapuschkin2019unmasking}: when training samples per class are insufficient, the network exploits shortcut features—such as the presence of human handlers in dog show environments—to minimize training loss, highlighting why expanding dataset volume and applying spatial cropping are crucial for true semantic generalization.
 
 \subsubsection{Key xAI Takeaways and Mitigation}
 Our xAI diagnostics directly guided our model refinement. Identifying this reliance on background context highlighted the explicit necessity for targeted spatial data augmentation strategies, such as Random Cropping, Color Jitter, and Random Erasing \cite{zhong2020random}. By breaking unwanted correlations between non-relevant background elements and class predictions, these mitigations successfully redirected spatial attention back onto the primary animal targets, leading to improved generalization and robust saliency maps.

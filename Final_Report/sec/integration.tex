@@ -1,0 +1,36 @@
+\section{Integration Findings}
+\label{sec:integration}
+
+Assembling independently developed stages into one system surfaced several
+lessons that were as valuable as the headline metrics.
+
+\textbf{The resolution contract.} One cross-stage dependency is input
+resolution. Convolutional filters adapt to the object scale seen during
+training, so a classifier trained at one crop resolution and evaluated at
+another suffers a resolution shift that degrades accuracy without raising any
+error. Because different training tracks (Sec.~\ref{sec:training})
+experimented with different input sizes, we made the trained resolution part
+of each checkpoint's stored metadata, and the inference pipeline resizes the
+detector's crop to whatever resolution the loaded classifier was actually
+trained at. This turned a recurring source of silent degradation into a
+non-issue and decoupled the detector's crop geometry from classifier
+retraining decisions.
+
+\textbf{Crop geometry matters.} End-to-end evaluation showed that enlarging
+the crop region slightly beyond the raw bounding box measurably improved
+breed accuracy: tight boxes occasionally clip ears, whiskers, and coat
+texture at the border---precisely the regions fine-grained discrimination
+relies on \cite{zhang2014part}. Together with a permissive detection
+threshold, this tuning recovered several accuracy points on the labeled
+evaluation set; after it, the dominant residual error of the full system was
+borderline images yielding no detection at all rather than breed confusion,
+indicating that further end-to-end gains lie in the localization stage of
+Sec.~\ref{sec:detector} rather than in the classifiers.
+
+\textbf{Editions over rewrites.} Finally, we kept the earlier 20-class
+combined model as a maintained ``edition'' alongside the final species-split
+system, published as successive notebooks in the repository. Beyond
+documenting progress, the combined model served as a permanent integration
+fallback and as the reference point for the ablations in
+Sec.~\ref{sec:training}; several bugs were caught simply because the two
+editions disagreed where they should not have.

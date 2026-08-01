@@ -1,0 +1,49 @@
+\subsection{Explainable AI (xAI)}
+\label{subsec:xai}
+
+While deep convolutional neural networks achieve state-of-the-art accuracy, their internal decision-making processes often act as opaque black boxes. In early training iterations, we observed significant accuracy variance (from 5\% to over 60\%) under identical hyperparameter configurations without a clear indicator of whether performance gains stemmed from genuine feature representations or empirical memorization. Building upon foundational work in CNN interpretability by Zeiler and Fergus \cite{zeiler2014visualizing}, we employed Gradient-weighted Class Activation Mapping (Grad-CAM) \cite{selvaraju2017grad} to interpret spatial feature attention and verify whether prediction logits are driven by class-discriminative object features or background artifacts.
+
+Grad-CAM extracts the gradients of a target class score $y^c$ with respect to the feature maps $A^k$ of the final convolutional layer:
+\begin{equation}
+    w_k^c = \frac{1}{Z} \sum_{i} \sum_{j} \frac{\partial y^c}{\partial A_{i,j}^k}
+\end{equation}
+By computing a coarse localization map as a weighted combination of forward activation maps followed by a Rectified Linear Unit ($\text{ReLU}$), we project class-specific spatial attention back onto the input image space. In our pipeline, activation maps are extracted specifically from the final layer of the backbone (\texttt{model.backbone.features[-1]}), where semantic resolution is highest prior to global average pooling.
+
+\subsubsection{Best-Case Evaluation: Discriminative Feature Localization}
+To evaluate spatial attention under optimal model convergence, we analyzed correctly predicted samples from our final fine-tuned model. Figure \ref{fig:cam_bestcase} illustrates a representative best-case scenario for a \texttt{Samoyed} instance, correctly classified with a confidence score of $79.2\%$. 
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\columnwidth]{../CAM_Heat_Map/panel_04040.jpg}
+    \caption{Grad-CAM visualization demonstrating strong feature localization for a correct classification. The model concentrates its highest spatial attention (red/orange) directly on the target object (\texttt{Samoyed}), successfully ignoring background distractors such as the handler and fencing.}
+    \label{fig:cam_bestcase}
+\end{figure}
+
+The overlay map reveals that peak activation intensity (red and deep orange zones) is strictly localized on the animal's central torso and thick coat structure. Crucially, complex contextual elements—such as the moving legs of the human handler on the left or the wooden fence lattice in the background—receive virtually zero spatial weight (cool blue region). This confirms that the fine-tuned model prioritizes domain-invariant, morphological breed characteristics rather than relying on spatial environment shortcuts.
+
+\subsubsection{Worst-Case Evaluation: Contextual Shortcut Learning}
+To contrast this behavior, we conducted xAI analysis on an unregularized baseline model trained without spatial data augmentation. Figure \ref{fig:cam_worstcase} demonstrates a severe failure mode where the baseline network erroneously predicts \texttt{Pug} with a high confidence of $87.66\%$ on a non-Pug target.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\columnwidth]{../CAM_Heat_Map/panel_03746.jpg}
+    \caption{Grad-CAM visualization of a baseline model failure (worst practice). The network exhibits severe shortcut learning, misclassifying the image as \texttt{Pug} with $87.66\%$ confidence by focusing heavily on background contextual features rather than the actual target animal.}
+    \label{fig:cam_worstcase}
+\end{figure}
+
+As shown by the corresponding heatmap, spatial focus is almost entirely shifted away from the animal subject towards non-relevant background textures and floor boundaries. This high-confidence error illustrates a classical case of \textit{shortcut learning} \cite{geirhos2020shortcut}: instead of learning invariant semantic features of dog breeds, the unregularized backbone memorized spurious correlations between background geometries and the target logit.
+
+\subsubsection{Impact of Data Scarcity: Human-Presence Bias}
+To investigate how limited training data diversity affects feature representation, we analyzed early model checkpoints trained on smaller dataset splits. Under data scarcity, deep architectures tend to memorize spurious co-occurrences rather than learning invariant biological structures.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\columnwidth]{../CAM_Heat_Map/panel_08217_auswendig.jpg}
+    \caption{Grad-CAM visualization demonstrating human-presence bias due to data scarcity. The ground-truth target (\texttt{Samoyed}) is completely ignored; instead, spatial attention focuses on the human handler, leading to a high-confidence misclassification as \texttt{Shiba\_Inu} ($83.3\%$).}
+    \label{fig:cam_human_bias}
+\end{figure}
+
+As depicted in Figure \ref{fig:cam_human_bias}, a striking failure mode occurs on a \texttt{Samoyed} instance. Despite the target dog being clearly visible on the right side of the frame, the model's spatial attention (red and orange activation zones) is concentrated entirely on the human handler's torso and attire. This focus results in a confident misclassification as \texttt{Shiba\_Inu} ($83.3\%$). This behavior illustrates the "Clever Hans" effect \cite{lapuschkin2019unmasking}: when training samples per class are insufficient, the network exploits shortcut features—such as the presence of human handlers in dog show environments—to minimize training loss, highlighting why expanding dataset volume and applying spatial cropping are crucial for true semantic generalization.
+
+\subsubsection{Key xAI Takeaways and Mitigation}
+Our xAI diagnostics directly guided our model refinement. Identifying this reliance on background context highlighted the explicit necessity for targeted spatial data augmentation strategies, such as Random Cropping, Color Jitter, and Random Erasing \cite{zhong2020random}. By breaking unwanted correlations between non-relevant background elements and class predictions, these mitigations successfully redirected spatial attention back onto the primary animal targets, leading to improved generalization and robust saliency maps.

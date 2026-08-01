@@ -1,10 +1,49 @@
 \section{Animal Classifier}
 \label{sec:animal_classifier}
 
-i\subsection*{Learnings \& Troubleshooting}
+\subsection*{Learnings \& Troubleshooting}
 
 \textbf{Problem: Falsche Bildauflösung (Resolution Shift)} \\
 Wenn ein Convolutional Neural Network (wie \texttt{efficientnet\_v2\_s}) auf kleinen $224 \times 224$~Pixel großen Bildausschnitten trainiert wird, lernt es Filter für Objekte in einer bestimmten relativen Größe. Werden bei der Evaluierung oder bei der Visualisierung mittels Grad-CAM plötzlich $384 \times 384$~Bilder übergeben, kommt es zu einem sogenannten \emph{Resolution Shift}. Die gelernten Filter passen nicht mehr optimal zu den Strukturen, was die Accuracy künstlich verschlechtern kann.
 
 \paragraph{Empfehlung:} 
 Passe die Transformationen in der Datei \texttt{animalClassifier.py} so an, dass sie exakt der Trainingsauflösung von $224 \times 224$~Pixeln entsprechen. Alternativ kann in \texttt{train.py} direkt auf $384 \times 384$~Pixel trainiert werden, was allerdings mehr GPU-Speicher benötigt.
+
+Both breed classifiers use EfficientNetV2-S \cite{tan2021efficientnetv2} as
+the backbone, the small member of a model family designed jointly for
+accuracy and training efficiency through a search over Fused-MBConv and
+MBConv blocks. The choice was made in the preliminary phase and survived the
+project unchanged: at ${\sim}21$M parameters the model is large enough for
+fine-grained texture discrimination---breed identity frequently hinges on
+coat texture, ear shape, and facial geometry rather than global
+silhouette---yet small enough to train within a free-tier GPU budget and to
+run comfortably inside the inference envelope: the profiling of
+Sec.~\ref{sec:speed} attributes only $24.64$\,ms ($12.3\%$) of per-image
+latency to the classification stage, an order of magnitude below the
+detector, so the classifier is effectively free at inference time and the
+two-model design carries no meaningful runtime penalty.
+
+We instantiate the torchvision implementation with ImageNet-pretrained
+weights---transfer learning being decisive at our dataset scale
+\cite{kornblith2019transfer}, as the controlled pretrained-versus-scratch
+comparison in Sec.~\ref{sec:training} quantifies---and replace the final
+classification layer with a freshly initialized linear head sized to the
+active class set: 10 outputs for the cat model, 10 for the dog model, and 20
+in the earlier single-model edition that preceded the species split. All remaining layers are fine-tuned end-to-end rather than frozen: with tens
+of thousands of images available (Sec.~\ref{sec:dataset}), the low-data
+regime that motivates backbone freezing does not apply, and fine-grained
+discrimination requires adapting precisely the deep texture features that
+freezing would fix in place.
+
+We additionally investigated whether the backbone initialization itself could
+be improved for the harder species. Since ImageNet-1k devotes a large share
+of its label space to dog breeds but only a handful of classes to cats, the
+pretrained backbone arrives better prepared for the dog task than for the cat
+task. To symmetrize this, we evaluated a community-published cat-breed
+EfficientNetV2-S checkpoint from HuggingFace as an alternative cat-model
+initialization. The experiment is a clean negative result: after unwrapping
+the checkpoint's serialization format the backbone loaded correctly, yet final cat-model quality was indistinguishable from the
+ImageNet baseline. Consistent with the data-centric findings of
+Sec.~\ref{sec:training}, what ultimately improved the cat model was not
+initialization but targeted dataset expansion. We retain the loader in the
+repository for reproducibility.

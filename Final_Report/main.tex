@@ -17,6 +17,12 @@
 \usepackage[pagebackref,breaklinks,colorlinks,citecolor=cvprblue]{hyperref}
 \usepackage{tikz}
 \usepackage{pgf-pie}
+\usepackage{stfloats} % Erlaubt [b] auch für zweispaltige figure*
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    urlcolor=blue
+}
 
 %%%%%%%%% TITLE - PLEASE UPDATE
 \title{Final Paper SEP CV \& DL}
@@ -34,20 +40,24 @@ Ivan Kazakov
 Huang Ziyang
 \quad
 Mark Koester\\
-\tt\small\{Jan.Sternberg, Kazakov.Ivan, Huang.Ziyang, Mark.Koester\}@campus.lmu.de
+\tt\small\{Jan.Sternberg, Kazakov.Ivan, Huang.Ziyang, Mark.Koester\}@campus.lmu.de\\
+\small\texttt{Repository: \href{https://github.com/NordlichtS/CVDL26-drop-table-catdogs}{CVDL26-drop-table-catdogs}}
 }
+
 
 \begin{document}
 \maketitle
 \input{sec/0_abstract}    
 \input{sec/intro}
 \input{sec/pipeline}
-\input{sec/dataset}
 \input{sec/detector}
 \input{sec/animal_classifier}
+\input{sec/integration}
+\input{sec/dataset}
 \input{sec/training}
 \input{sec/speed}
 \input{sec/evaluate}
+\input{sec/lessons_learned}
 
 
 {
@@ -56,6 +66,58 @@ Mark Koester\\
     \bibliography{main}
 }
 
+\clearpage
+\appendix
+\section{Detailed Training History Curves}
+\label{sec:appendix_curves}
+
+This appendix presents the full training and validation loss alongside accuracy progression curves across all seven experimental configurations for both Cat and Dog datasets.
+
+\begin{figure*}[htbp]
+    \centering
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../L_A_Graphs/training_output_198292_7_dog.png}
+        \caption{Task 7: Dog Baseline ($78.66\%$)}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../L_A_Graphs/training_output_198292_7_cat.png}
+        \caption{Task 7: Cat Baseline ($46.13\%$)}
+    \end{subfigure}
+    
+    \vspace{0.3cm}
+    
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../L_A_Graphs/training_output_198292_3_dog.png}
+        \caption{Task 3: Dog Blur ($82.96\%$)}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../L_A_Graphs/training_output_198292_3_cat.png}
+        \caption{Task 3: Cat Blur ($47.13\%$)}
+    \end{subfigure}
+
+    \vspace{0.3cm}
+    
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../L_A_Graphs/training_output_198292_5_dog.png}
+        \caption{Task 5: Dog CropMix ($84.99\%$)}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../L_A_Graphs/training_output_198292_4_cat.png}
+        \caption{Task 4: Cat Mirror ($49.89\%$)}
+    \end{subfigure}
+    
+    \caption{Comparison of training loss and accuracy dynamics across Cat and Dog classification runs under different augmentation strategies when trained from uninitialized weights.}
+    \label{fig:appendix_training_curves}
+\end{figure*}
 % supplementary material
 % \input{sec/X_suppl}
 

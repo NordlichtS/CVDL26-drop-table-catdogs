@@ -1,4 +1,49 @@
-\section{Pipeline}
-\label{sec:pipeline}
+\section{System Architecture and Stage Interfaces}
+\label{sec:architecture}
 
-we describe our pipeline
+Our system is a two-stage cascade: the object detector of
+Sec.~\ref{sec:detector} first localizes the animal and decides its species,
+and a species-specific fine-grained classifier then assigns the breed. Images
+in which no target animal is detected are rejected ($-1$) without ever
+reaching a classifier. This detect-then-classify design follows a long line
+of fine-grained recognition work, in which localizing the object before
+classification removes background clutter and lets the classifier spend its
+capacity on discriminative details \cite{zhang2014part}. The same cascade
+pattern is deployed at scale in wildlife monitoring, where MegaDetector
+\cite{megadetector2026} localizes animals and SpeciesNet \cite{speciesnet2025}
+classifies the resulting crops; as discussed in Sec.~\ref{sec:detector}, we
+evaluated that stack directly before settling on the lighter YOLOv6-based
+\cite{li2022yolov6} realization of the same idea, and the runtime analysis of
+Sec.~\ref{sec:speed} confirms the choice: even our lightweight detector
+dominates end-to-end latency at ${\sim}83\%$ of the per-image budget, so a
+heavier localization stage would have threatened the 5-second constraint.
+
+The two stages communicate through a single, deliberately narrow interface:
+the detector emits a crop and a species tag (\texttt{cat}, \texttt{dog}, or
+\texttt{neither}), and the tag routes the crop to one of two independent
+classifiers. Keeping this interface minimal was a conscious design decision
+with three architectural consequences. First, each classifier solves a
+10-class problem over visually related breeds instead of a 20-class problem
+spanning two species; its entire output space is conditioned on the
+detector's decision, so no capacity is spent on inter-species separation that
+the detector already performs reliably. Second, rejection becomes a property
+of the detector rather than an extra class the classifiers must learn:
+confounder images produce no cat/dog detection above threshold and are
+rejected before classification, so the classifiers never require training
+data for a ``none of the above'' concept---an important simplification given
+how our dataset was assembled from breed-labeled sources
+(Sec.~\ref{sec:dataset}) that contain no negative examples. Third, the two
+classifiers can be developed, retrained, and replaced independently, which in
+practice allowed the training tracks described in Sec.~\ref{sec:training} to
+iterate on the cat model---the harder of the two---without touching the dog
+model at all.
+
+The cost of species routing is that a routing mistake is unrecoverable: the
+wrong-species model does not contain the correct breed in its output space.
+In our end-to-end evaluation such cross-species failures were rare and
+concentrated on atypical animals---the canonical example being a hairless
+Sphynx cat detected as a dog, whereupon the dog model, forced to answer,
+selected the wrinkle-faced Pug. We accepted this bounded cost in exchange for
+the simpler, better-matched per-species problems; the performance asymmetry
+between the two species models that this split exposed is analyzed in
+Sec.~\ref{sec:training}.

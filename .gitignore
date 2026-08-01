@@ -40,6 +40,7 @@ CAM_Heat_Map
 
 
 
+
 # LaTeX temporary/build files
 *.aux
 *.fdb_latexmk

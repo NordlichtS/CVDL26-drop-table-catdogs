@@ -15,14 +15,12 @@
 % (Or just hit 'q' on the first LaTeX run, let it finish, and you should be clear).
 \definecolor{cvprblue}{rgb}{0.21,0.49,0.74}
 \usepackage[pagebackref,breaklinks,colorlinks,citecolor=cvprblue]{hyperref}
-\usepackage{tikz}
-\usepackage{pgf-pie}
-\usepackage{stfloats} % Erlaubt [b] auch für zweispaltige figure*
-\usepackage{hyperref}
 \hypersetup{
-    colorlinks=true,
     urlcolor=blue
 }
+\usepackage{tikz}
+\usepackage{pgf-pie}
+\usepackage{stfloats}
 
 %%%%%%%%% TITLE - PLEASE UPDATE
 \title{Final Paper SEP CV \& DL}
@@ -47,18 +45,12 @@ Mark Koester\\
 
 \begin{document}
 \maketitle
-\input{sec/0_abstract}    
-\input{sec/intro}
-\input{sec/pipeline}
-\input{sec/detector}
-\input{sec/animal_classifier}
-\input{sec/integration}
-\input{sec/dataset}
-\input{sec/training}
-\input{sec/speed}
-\input{sec/evaluate}
-\input{sec/lessons_learned}
-
+\input{sec/00_abstract}    
+\input{sec/01_introduction}
+\input{sec/02_related_work}
+\input{sec/03_method}
+\input{sec/04_experiments}
+\input{sec/05_conclusion}
 
 {
     \small
@@ -68,6 +60,11 @@ Mark Koester\\
 
 \clearpage
 \appendix
+
+\section{Author Contributions}
+\label{sec:contributions}
+\input{sec/06_appendixx}
+
 \section{Detailed Training History Curves}
 \label{sec:appendix_curves}
 

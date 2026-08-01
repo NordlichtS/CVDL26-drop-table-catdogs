@@ -15,6 +15,8 @@
 % (Or just hit 'q' on the first LaTeX run, let it finish, and you should be clear).
 \definecolor{cvprblue}{rgb}{0.21,0.49,0.74}
 \usepackage[pagebackref,breaklinks,colorlinks,citecolor=cvprblue]{hyperref}
+\usepackage{tikz}
+\usepackage{pgf-pie}
 
 %%%%%%%%% TITLE - PLEASE UPDATE
 \title{Final Paper SEP CV \& DL}
@@ -39,10 +41,13 @@ Mark Koester\\
 \maketitle
 \input{sec/0_abstract}    
 \input{sec/intro}
+\input{sec/dataset}
 \input{sec/detector}
 \input{sec/pipeline}
 \input{sec/detection_model}
 \input{sec/training}
+\input{sec/speed}
+\input{sec/evaluate}
 \input{sec/ivan}
 \input{sec/jerry}
 \input{sec/marc}

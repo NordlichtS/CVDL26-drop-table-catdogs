@@ -1,0 +1,35 @@
+\section{Computational Performance and Runtime Analysis}
+\label{sec:speed}
+
+In machine learning workflows, \textit{inference} is defined as the process of executing a trained neural network model on unseen input data to compute predictions, operating strictly in a forward-pass evaluation mode without gradient computation or weight updates \cite{goodfellow2016deep}. For our fine-grained animal recognition system, performance profiling was conducted on the provided evaluation set of 143 images to quantify the latency distribution across individual processing stages and ensure strict compliance with the maximum allowed limit of 5.0 seconds per inference request.
+
+The initialization phase—which includes loading the neural network architectures (YOLOv6 detector and classification models) and transferring weight parameters into GPU memory—incurred a one-time startup overhead of $1.4307$ seconds. Across the complete test dataset, the average end-to-end processing latency per image was $200.63$~ms, corresponding to an effective throughput of $4.98$ frames per second (FPS) and a total loop execution time of $28.71$ seconds for all 143 samples.
+
+A detailed breakdown of the internal pipeline components highlights the specific computational distribution per image:
+\begin{itemize}
+    \item \textbf{Disk I/O / Image Loading:} Reading the image file from storage via PIL required $5.18$~ms ($2.6\%$ of per-image execution time).
+    \item \textbf{Preprocessing:} Converting PIL image representations to BGR NumPy arrays accounted for $4.65$~ms ($2.3\%$).
+    \item \textbf{Object Detection (YOLOv6):} The localization and candidate bounding box extraction phase required $166.12$~ms, constituting the primary computational bottleneck at approximately $82.8\%$ of total forward-pass latency.
+    \item \textbf{Species Classification:} The fine-grained downstream classification (via the custom cat/dog network architectures) was completed in $24.64$~ms ($12.3\%$).
+\end{itemize}
+
+The timing breakdown clearly identifies the object detection stage as the main contributor to execution latency. However, from a system requirement standpoint, the per-image inference latency of $0.201$ seconds operates significantly below the allocated 5.0-second constraint, utilizing only $4.01\%$ of the allowed time budget per image. Even in a worst-case cold-start scenario where the initial model setup time ($1.4307$~s) is added to a single image inference pass ($0.201$~s), the total execution time of $1.632$ seconds comfortably satisfies the operational limit. This confirms that the proposed multi-stage pipeline is computationally lightweight, highly efficient, and well within all performance parameters required for real-time application.
+
+\begin{figure}[htbp]
+    \centering
+    \begin{tikzpicture}[scale= 0.8, transform shape]
+        \pie[
+            radius=2.8,
+            color={blue!50, teal!40, red!60, orange!60},
+            explode={0.1, 0.1, 0.2, 0.1},
+            text=legend
+        ]{
+            2.6 / Disk Read (5.18 ms),
+            2.3 / Preprocessing (4.65 ms),
+            82.8 / YOLOv6 Detection (166.12 ms),
+            12.3 / Classification (24.64 ms)
+        }
+    \end{tikzpicture}
+    \caption{Per-image inference latency breakdown across processing stages.}
+    \label{fig:latency_breakdown}
+\end{figure}

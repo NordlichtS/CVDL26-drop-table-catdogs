@@ -124,7 +124,7 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
     for epoch in range(1, num_epochs + 1):
         model.train()
         train_loss, train_correct, train_total = 0.0, 0, 0
-        train_pbar = tqdm(train_loader, desc=f"Train {species} Epoch {epoch}", file=sys.stdout, leave=False)
+        train_pbar = tqdm(train_loader, desc=f"Train {species} Epoch {epoch}", file=sys.stdout, leave=False,miniters=50,maxinterval=10)
         
         for inputs, labels in train_pbar:
             inputs, labels = inputs.to(device), labels.to(device)
@@ -153,7 +153,7 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
         class_total = [0] * NUM_CLASSES
         
         with torch.no_grad():
-            val_pbar = tqdm(val_loader, desc=f"Val {species} Epoch {epoch}", file=sys.stdout, leave=False)
+            val_pbar = tqdm(val_loader, desc=f"Val {species} Epoch {epoch}", file=sys.stdout, leave=False, miniters=50, maxinterval=10)
             for inputs, labels in val_pbar:
                 inputs, labels = inputs.to(device), labels.to(device)
                 

@@ -14,7 +14,7 @@ class AnimalClassifier(nn.Module):
         # --- 1. ARCHITEKTUR (IMMER FROM SCRATCH) ---
         # weights=None garantiert, dass NIEMALS vortrainierte ImageNet-Gewichte geladen werden!
         self.backbone = efficientnet_v2_s(weights=None)
-        
+
         # Den letzten Klassifikations-Layer anpassen UND Dropout erhöhen
         in_features = self.backbone.classifier[1].in_features
         

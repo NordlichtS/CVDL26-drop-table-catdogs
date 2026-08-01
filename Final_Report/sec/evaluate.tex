@@ -1,3 +1,28 @@
-\section{Evaluate and xAI}
+\section{Evaluation and xAI}
 \label{sec:evaluate}
 
+As we described, our first approach to train our model was to use a lot of data and let the \texttt{Animal\_Classifier} learn specific patterns, forms, and symmetry.
+We understood how it works, but not why some models achieved an accuracy of 5--16\% while others reached 60\% or higher, even though we used the same parameters. From training alone, we did not clearly understand why some performed so well, how they improved, or whether more data would help us reach a higher accuracy or lead to a bottleneck soon \cite{zeiler2013visualizing}. 
+
+To evaluate the interpretability and spatial attention of our model under ideal conditions, we analyzed correctly classified instances 
+where the network successfully isolates the target object from surrounding clutter. Figure \ref{fig:cam_bestcase} illustrates a representative best-case scenario for a \texttt{Samoyed} instance, correctly predicted with a confidence of $79.2\%$. The Grad-CAM heatmap extracted from the final convolutional layer (\texttt{model.backbone.features[-1]}) reveals that the highest activation regions (red and deep orange) are tightly localized on the animal's central body and its characteristic dense, white coat. Crucially, prominent background distractors—such as the moving legs of the handler on the left side of the frame and the wooden enclosure fencing—receive minimal to no activation (cool blue tones). This demonstrates that the network relies on highly specific, class-relevant semantic features rather than spatial shortcuts, confirming a robust feature representation even in complex indoor environments.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\columnwidth]{../CAM_Heat_Map/panel_04040.jpg} % Pfad an eure Dateistruktur anpassen!
+\caption{Grad-CAM visualization demonstrating strong feature localization for a correct classification. The model concentrates its 
+highest spatial attention (red/orange) directly on the target object (\texttt{Samoyed}), successfully ignoring background distractors 
+such as the handler and fencing.}
+\label{fig:cam_bestcase}
+\end{figure}
+
+To contrast our optimized feature representations with earlier development iterations, we evaluated a baseline model trained without strong regularization or spatial data augmentation. In this worst-practice scenario, the network exhibited severe shortcut learning and empirical memorization. 
+
+As illustrated in Figure \ref{fig:cam_worstcase}, the baseline model misclassifies the instance, predicting \texttt{Pug} with a surprisingly high confidence of $87.66\%$, despite the ground-truth target belonging to a completely different class. The corresponding Grad-CAM activation map highlights that the model's spatial attention is almost entirely displaced from the target animal. Instead of isolating class-defining anatomical structures, the highest intensity activations (red/orange regions) are concentrated on non-relevant background elements and contextual cues. This high-confidence failure mode demonstrates how unregularized convolutional networks easily memorize spurious dataset correlations—such as ambient background textures or co-occurring artifacts—rather than learning genuine, invariant semantic features of the respective animal breed.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\columnwidth]{../CAM_Heat_Map/panel_03746.jpg} % Pfad zu deinem erzeugten Worst-Case Panel
+    \caption{Grad-CAM visualization of a baseline model failure (worst practice). The network exhibits severe shortcut learning, misclassifying the image as \texttt{Pug} with $87.66\%$ confidence by focusing heavily on background contextual features rather than the actual target animal.}
+    \label{fig:cam_worstcase}
+\end{figure}

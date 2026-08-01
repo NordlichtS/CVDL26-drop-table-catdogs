@@ -8,6 +8,7 @@ In this section, we present our two-stage cascade architecture for fine-grained 
 % --- FIGURE 1: PIPELINE DIAGRAM ---
 \begin{figure*}[t]
   \centering
+  \resizebox{\textwidth}{!}{%
   \begin{tikzpicture}[
     node distance=0.5cm and 0.6cm,
     auto,
@@ -44,7 +45,8 @@ In this section, we present our two-stage cascade architecture for fine-grained 
     \path [line] (router) |- node[near start, below left, font=\scriptsize] {Dog (16)} (dog_head);
     \path [line] (cat_head) -- (cat_out);
     \path [line] (dog_head) -- (dog_out);
-  \end{tikzpicture}
+  \end{tikzpicture}%
+  }
   \caption{Overview of the proposed cascade inference pipeline. An input image $x$ is processed by an off-the-shelf \texttt{YOLOv6} detector. If no cat or dog is detected, the image is immediately assigned the rejection label $y = -1$. Otherwise, secondary detections are zero-masked, and the primary target crop ($224 \times 224$) is routed to the corresponding species-specific \texttt{EfficientNetV2-S} backbone, yielding the global breed prediction.}
   \label{fig:pipeline}
 \end{figure*}

@@ -64,14 +64,8 @@ Comparing Task 5 (84.99\%) with Task 6 (85.02\%) demonstrates that CropMix accou
 \paragraph{Convergence Horizon and Epoch Sweeps}
 Primary feature learning converged within the first 25 epochs following initial training. Sweeps over 100, 1000, and 3000 epochs provided no measurable validation accuracy gains; instead, extended training caused validation performance to plateau while training accuracy approached 100\%.
 
-
-
-
 \paragraph{Dropout and Augmentation Saturation}
 Setting the dropout rate in the classifier head to 0.5 helped prevent co-adaptation. Spatial augmentations including random flipping, rotation, mirroring, and custom \texttt{CropMix} patch mixing \cite{yun2019cutmix} yielded noticeable gains initially. However, performance gains saturated once effective sample density reached roughly 400 images per breed, showing diminishing returns beyond that level. Conversely, applying Gaussian blur as a spatial augmentation degraded classification performance by obscuring fine morphological cues like coat patterns and eye structures.
-
-\paragraph{Convergence Horizon and Epoch Sweeps}
-Primary feature learning converged within the first 25 epochs following initial training. Sweeps over 100, 1000, and 3000 epochs provided no measurable validation accuracy gains; instead, extended training caused validation performance to plateau while training accuracy approached 100\%.
 
 \paragraph{Train-Validation Divergence Control}
 To prevent training and validation accuracy from diverging, we combined Model Checkpointing with Early Stopping \cite{prechelt1998early}. Training stopped if validation accuracy failed to improve for 10 consecutive epochs or if the gap between training and validation accuracy exceeded 7\%.
@@ -142,7 +136,7 @@ We applied Grad-CAM \cite{selvaraju2017grad} to the final convolutional feature 
 
 
 \subsubsection{Best-Case Evaluation: Discriminative Feature Localization}
-To evaluate spatial attention under optimal model convergence, we analyzed correctly predicted samples from our final fine-tuned model. As seen in the top panel of Figure \ref{fig:cam_evaluation}, a representative best-case scenario for a \texttt{Samoyed} instance is correctly classified. The overlay map reveals that peak activation intensity (red/orange) is strictly localized on the animal's central torso and thick coat structure, successfully ignoring background distractors such as the handler and fencing.
+To evaluate spatial attention under optimal model convergence, we analyzed correctly predicted samples from our final fine-tuned model. As seen in the top panel of Figure \ref{fig:cam_bestcase}, a representative best-case scenario for a \texttt{Samoyed} instance is correctly classified. The overlay map reveals that peak activation intensity (red/orange) is strictly localized on the animal's central torso and thick coat structure, successfully ignoring background distractors such as the handler and fencing.
 
 \begin{figure}[htbp]
     \centering
@@ -152,7 +146,7 @@ To evaluate spatial attention under optimal model convergence, we analyzed corre
 \end{figure}
 
 \subsubsection{Worst-Case Evaluation: Contextual Shortcut Learning}
-To contrast this behavior, we conducted xAI analysis on an unregularized baseline model trained without spatial data augmentation. The middle panel of Figure \ref{fig:cam_evaluation} demonstrates a severe failure mode where the baseline network erroneously predicts \texttt{Pug} with a high confidence of 87.66\% on a non-Pug target. Spatial focus is almost entirely shifted away from the animal subject towards non-relevant background textures and floor boundaries, illustrating a classical case of shortcut learning \cite{geirhos2020shortcut}.
+To contrast this behavior, we conducted xAI analysis on an unregularized baseline model trained without spatial data augmentation. The middle panel of Figure \ref{fig:cam_worstcase} demonstrates a severe failure mode where the baseline network erroneously predicts \texttt{Pug} with a high confidence of 87.66\% on a non-Pug target. Spatial focus is almost entirely shifted away from the animal subject towards non-relevant background textures and floor boundaries, illustrating a classical case of shortcut learning \cite{geirhos2020shortcut}.
 
 \begin{figure}[htbp]
     \centering
@@ -162,7 +156,7 @@ To contrast this behavior, we conducted xAI analysis on an unregularized baselin
 \end{figure}
 
 \subsubsection{Impact of Data Scarcity: Human-Presence Bias}
-To investigate how limited training data diversity affects feature representation, we analyzed early model checkpoints trained on smaller dataset splits. As depicted in the bottom panel of Figure \ref{fig:cam_evaluation}, a striking failure mode occurs on a \texttt{Samoyed} instance. Despite the target dog being clearly visible, the model's spatial attention is concentrated entirely on the human handler's torso and attire, leading to a high-confidence misclassification as \texttt{Shiba\_Inu} (83.3\%). This illustrates the "Clever Hans" effect, where the network exploits shortcut features—such as the presence of human handlers—to minimize training loss.
+To investigate how limited training data diversity affects feature representation, we analyzed early model checkpoints trained on smaller dataset splits. As depicted in the bottom panel of Figure \ref{fig:cam_human_bias}, a striking failure mode occurs on a \texttt{Samoyed} instance. Despite the target dog being clearly visible, the model's spatial attention is concentrated entirely on the human handler's torso and attire, leading to a high-confidence misclassification as \texttt{Shiba\_Inu} (83.3\%). This illustrates the "Clever Hans" effect, where the network exploits shortcut features—such as the presence of human handlers—to minimize training loss.
 
 \begin{figure}[htbp]
     \centering

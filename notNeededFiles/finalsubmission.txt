@@ -1,0 +1,31 @@
+Final submission. (deadline August 1 evening)
+Submit your complete code as a .zip archive together with your trained model weights, runnable through the provided inference interface. 
+We must be able to reproduce your reported results from this code and a README. 
+The README must explain how to set up the environment and how to obtain and preprocess the data. 
+If you collect images from the internet, a list of source URLs is sufficient. 
+Develop your project in a GitHub repository and grant us access to it after the submission. 
+Include the GitHub repository link in your final report.
+ In addition, submit a final report of 8 pages, double column,
+excluding references, written in the provided template and following a scientific paper structure with the sections Introduction, Related Work, Method, Experiments, and Conclusions. 
+The Experiments section shall include the results of your empirical analyses, evaluations, 
+and the explainable AI (XAI) analysis. 
+Finally, please add a detailed contributions list in the appendix stating what each member did. 
+
+Your grade does not depend on the raw recognition performance you reach on the held-out test set. 
+It reflects the quality of your work and your development process: 
+the ideas you explore, your motivation, the soundness of your execution 
+and the depth of your empirical analysis. 
+Approaches that you tried and that did not improve your results are equally valuable, 
+as long as you analyse and discuss them.
+
+Planned improvements before the final packaging:
+- Consolidate the current code paths so the submission uses one clearly documented inference flow and one clearly documented training flow.
+- Verify that the final detector and classifier weights load correctly through the official inference interface.
+- Reproduce the reported results from the cleaned codebase and record the exact setup, data sources, and run commands.
+- Finish the final report in the provided template, including Introduction, Related Work, Method, Experiments, Conclusions, and the appendix contribution list.
+- Keep the README aligned with the actual repository structure, data preparation process, and runtime requirements.
+- Keep the README and final report aligned with what is actually implemented now, and clearly label exploratory ideas from the report materials if they are not part of the shipped code.
+- Remove remaining legacy/debug branches and backup scripts from the submission package, or label them as archival so the final workflow is unambiguous.
+- Verify the final inference entry point is deterministic and works from a clean checkout with only the documented weights and paths.
+- Record the exact preprocessing commands and source URLs for every internet-collected image source before packaging.
+- Package the code, weights, and reproducibility instructions into the final submission archive after the remaining checks pass.

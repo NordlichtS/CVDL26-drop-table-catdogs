@@ -1,4 +1,4 @@
--e git+https://github.com/NordlichtS/CVDL26-drop-table-catdogs.git@7ffa19b1684ac647dca668c53f4296d27ff43436#egg=animal_recognition
+-e git+https://github.com/NordlichtS/CVDL26-drop-table-catdogs.git@2faca6f13cee3b5661eaab2409f935ced9dc534f#egg=animal_recognition
 certifi==2026.6.17
 charset-normalizer==3.4.7
 contourpy==1.3.3
@@ -9,7 +9,6 @@ cycler==0.12.1
 filelock==3.29.5
 fonttools==4.63.0
 fsspec==2026.6.0
-grad-cam==1.5.5
 idna==3.18
 Jinja2==3.1.6
 joblib==1.5.3
@@ -58,6 +57,5 @@ torch==2.12.1
 torchvision==0.27.1
 tqdm==4.68.3
 triton==3.7.1
-ttach==0.0.3
 typing_extensions==4.16.0
 urllib3==2.7.0

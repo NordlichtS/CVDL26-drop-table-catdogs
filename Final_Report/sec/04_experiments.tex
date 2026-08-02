@@ -22,9 +22,9 @@ Our evaluation is guided by six primary research questions:
 
 Our final dataset consists of 35,423 images, drawing on established benchmarks such as the Oxford-IIIT Pet dataset \cite{parkhi2012catsdogs} and the Stanford Dogs dataset \cite{khosla2011novel}. Initial API data collection provided insufficient density, yielding roughly 12 images per breed \cite{cat_api, thedogapi}. To resolve underrepresentation, we integrated supplementary images from Unsplash \cite{unsplash} and Pixabay \cite{pixabay}, bringing minority breeds to a minimum threshold of 50 images per breed and pushing baseline accuracy past 80\%.
 
-During curation, we addressed the distinction between Tabby and Tiger cat. Rather than merging the categories, we recognized Tiger cat as a fur pattern context and Tabby as the target breed, gathering dedicated image subsets for both. Data verification also identified a complete absence of Dalmatian samples in early downloads; incorporating a dedicated set of 359 Dalmatian images led to a sharp performance gain, raising Dalmatian accuracy from 17\% to 69\% within 10 training epochs.
+During curation, we addressed the distinction between Tabby and Tiger cat. Rather than merging the categories, we recognized Tiger cat as a fur pattern context and Tabby as the target breed, gathering dedicated image subsets for both. Data verification also identified a complete absence of Dalmatian samples in the initial data collection; incorporating a dedicated set of 359 Dalmatian images led to a sharp performance gain, raising Dalmatian accuracy from 17\% to 69\% within 10 training epochs.
 
-Keyword scraping for rare breeds introduced semantic noise—such as automated queries for ``Bombay'' cats inadvertently retrieving commercial bottles of Bombay Sapphire Gin—requiring us to strictly filter and restrict dataset expansion to verified sources \cite{unsplash, pixabay}. Furthermore, attempts to synthesize training data for rare breeds using generative image models like DALL-E and Midjourney failed due to significant operational overhead, as manual quality filtering and artifact removal outweighed synthetic expansion benefits.
+Keyword scraping for rare breeds introduced semantic noise, such as automated queries for ``Bombay'' cats inadvertently retrieving commercial bottles of Bombay Sapphire Gin, requiring us to strictly filter and restrict dataset expansion to verified sources \cite{unsplash, pixabay}. Furthermore, attempts to synthesize training data for rare breeds using generative image models like DALL-E and Midjourney failed due to significant operational overhead, as manual quality filtering and artifact removal outweighed synthetic expansion benefits.
 
 We partitioned the data into a stratified 80\% training split and a 20\% validation split ($7,085$ images), using perceptual hashing to ensure duplicate or derived images remained strictly within the same split to avoid data leakage.
 
@@ -52,7 +52,7 @@ Applying targeted image transformations significantly improves generalization ac
     \item \textbf{Combined Transformations (Task 6):} Applying all transformations simultaneously yields 85.02\% accuracy on dogs.
 \end{itemize}
 
-Comparing Task 5 (84.99\%) with Task 6 (85.02\%) demonstrates that CropMix accounts for virtually all performance improvements on the dog classification task, making additional filters like blurring largely redundant.
+Comparing Task 5 (84.99\%) with Task 6 (85.02\%) demonstrates that CropMix accounts for virtually all performance improvements on the dog classification task, making additional filters such as blurring largely redundant.
 
 \begin{figure}[htbp]
     \centering
@@ -65,7 +65,7 @@ Comparing Task 5 (84.99\%) with Task 6 (85.02\%) demonstrates that CropMix accou
 Primary feature learning converged within the first 25 epochs following initial training. Sweeps over 100, 1000, and 3000 epochs provided no measurable validation accuracy gains; instead, extended training caused validation performance to plateau while training accuracy approached 100\%.
 
 \paragraph{Dropout and Augmentation Saturation}
-Setting the dropout rate in the classifier head to 0.5 helped prevent co-adaptation. Spatial augmentations including random flipping, rotation, mirroring, and custom \texttt{CropMix} patch mixing \cite{yun2019cutmix} yielded noticeable gains initially. However, performance gains saturated once effective sample density reached roughly 400 images per breed, showing diminishing returns beyond that level. Conversely, applying Gaussian blur as a spatial augmentation degraded classification performance by obscuring fine morphological cues like coat patterns and eye structures.
+Setting the dropout rate in the classifier head to 0.5 helped prevent co-adaptation. Spatial augmentations including random flipping, rotation, mirroring, and custom \texttt{CropMix} patch mixing \cite{yun2019cutmix} yielded noticeable gains initially. However, performance gains saturated once effective sample density reached roughly 400 images per breed, showing diminishing returns beyond that level. Conversely, applying Gaussian blur as a spatial augmentation degraded classification performance by obscuring fine morphological cues such as coat patterns and eye structures.
 
 \paragraph{Train-Validation Divergence Control}
 To prevent training and validation accuracy from diverging, we combined Model Checkpointing with Early Stopping \cite{prechelt1998early}. Training stopped if validation accuracy failed to improve for 10 consecutive epochs or if the gap between training and validation accuracy exceeded 7\%.
@@ -156,7 +156,7 @@ To contrast this behavior, we conducted xAI analysis on an unregularized baselin
 \end{figure}
 
 \subsubsection{Impact of Data Scarcity: Human-Presence Bias}
-To investigate how limited training data diversity affects feature representation, we analyzed early model checkpoints trained on smaller dataset splits. As depicted in Figure \ref{fig:cam_human_bias}, a striking failure mode occurs on a \texttt{Samoyed} instance. Despite the target dog being clearly visible, the model's spatial attention is concentrated entirely on the human handler's torso and attire, leading to a high-confidence misclassification as \texttt{Shiba\_Inu} (83.3\%). This illustrates the "Clever Hans" effect, where the network exploits shortcut features—such as the presence of human handlers—to minimize training loss.
+To investigate how limited training data diversity affects feature representation, we analyzed early model checkpoints trained on smaller dataset splits. As depicted in Figure \ref{fig:cam_human_bias}, a striking failure mode occurs on a \texttt{Samoyed} instance. Despite the target dog being clearly visible, the model's spatial attention is concentrated entirely on the human handler's torso and attire, leading to a high-confidence misclassification as \texttt{Shiba\_Inu} (83.3\%). This illustrates the "Clever Hans" effect, where the network exploits shortcut features, such as the presence of human handlers, to minimize training loss.
 
 \begin{figure}[htbp]
     \centering
@@ -169,7 +169,7 @@ To investigate how limited training data diversity affects feature representatio
 \subsection{Efficiency Analysis and Latency}
 \label{subsec:efficiency}
 
-To answer RQ5 regarding operational latency, execution timing was measured over 1,000 warm iterations with explicit CUDA synchronization:
+To answer RQ5 regarding operational latency, execution timing was measured over 1,000 warm iterations with explicit CUDA synchronization. Note that because jobs were dynamically scheduled via SLURM across heterogeneous cluster nodes, hardware specifications (such as CPU models and GPU generations) varied between runs; the measurements below represent a standardized profiling snapshot:
 \begin{enumerate}
     \item Ingestion and conversion to $224 \times 224$: $8.12\text{ ms}$
     \item YOLOv6 detection and bounding box extraction: $112.45\text{ ms}$ \cite{li2022yolov6}
@@ -187,13 +187,13 @@ Mean warm end-to-end pipeline latency measured $200.63\text{ ms}$ per image, sat
             explode={0.1, 0.1, 0.2, 0.1},
             text=legend
         ]{
-            2.6 / Disk Read (5.18 ms),
-            2.3 / Preprocessing (4.65 ms),
-            82.8 / YOLOv6 Detection (166.12 ms),
-            12.3 / Classification (24.64 ms)
+            4.05 / Ingestion (8.12 ms),
+            7.13 / Masking (14.30 ms),
+            56.05 / YOLOv6 Detection (112.45 ms),
+            32.78 / Classification (65.76 ms)
         }
     \end{tikzpicture}
-    \caption{Per-image inference latency breakdown across processing stages.}
+    \caption{Per-image inference latency breakdown across processing stages (captured under a representative SLURM hardware allocation).}
     \label{fig:latency_breakdown}
 \end{figure}
 
@@ -209,7 +209,7 @@ Testing input resolutions of $384 \times 384$ pixels caused memory bottlenecks b
 Executing YOLOv6 inside training loops for every image across every epoch formed a severe bottleneck \cite{li2022yolov6}. We established an automated disk caching system (\texttt{cropped\_cache\_cat} and \texttt{cropped\_cache\_dog}) storing pre-extracted crops. Furthermore, a pre-validation script verifying image integrity and bounding box coordinates prevented SLURM array job crashes.
 
 \paragraph{PyTorch Serialization and SLURM Automation}
-Updated PyTorch versions (2.6+) restricted checkpoint loading for complex metadata dictionaries; we resolved this by applying a targeted patch to \texttt{torch.load} setting \texttt{weights\_only=False} \cite{paszke2019pytorch}. Manual hyperparameter tuning was replaced by automated SLURM array scripts. Training from scratch was highly sensitive to learning rate selection; Cosine Annealing ($\eta_0 = 1.0 \times 10^{-3} \to \eta_{\text{min}} = 1.0 \times 10^{-6}$) provided necessary optimization momentum.
+Updated PyTorch versions (2.6+) restricted checkpoint loading by defaulting to safe globals, which impacts complex metadata dictionaries. We resolved this by explicitly setting \texttt{weights\_only=False} in \texttt{torch.load}, which is appropriate since all checkpoint files originate from trusted local training runs (see \url{https://docs.pytorch.org/docs/stable/notes/serialization.html}). Manual hyperparameter tuning was replaced by automated SLURM array scripts. Training from scratch was highly sensitive to learning rate selection; Cosine Annealing, which decays the run-specific initial learning rate $\eta_0$ down to zero ($\eta_{\text{min}} = 0$), provided necessary optimization momentum.
 
 \paragraph{Web Scraping Noise}
 Keyword scraping for rare breeds introduced semantic noise (e.g., queries for "Bombay" cats retrieved bottles of Bombay Sapphire Gin) and datasets with wrong classification (especially not pure breeds but mixed breeds), requiring us to restrict dataset expansion to verified sources \cite{unsplash, pixabay}.
@@ -217,7 +217,7 @@ Keyword scraping for rare breeds introduced semantic noise (e.g., queries for "B
 \paragraph{Diagnostic Occlusion and Zero-Out Masking}
 To rigorously evaluate whether the fine-grained classifier relies on true anatomical features rather than contextual shortcuts, we conducted an extreme occlusion test. By applying complete zero-out masking ($I_{\text{crop}} = \mathbf{0}$) to the input crops prior to the classification heads, we tested the network's behavior under total information loss. 
 
-Interestingly, the custom-trained EfficientNetV2-S models maintained confident predictions for specific classes (e.g., predicting \textit{Pug} with over $14\%$ confidence on blank black inputs). This diagnostic result indicates the presence of uncalibrated logit priors and contextual overfitting, confirming that fine-grained classification from scratch heavily exploits global background distribution artifacts when species-specific visual features are absent.
+The custom-trained EfficientNetV2-S models maintained confident predictions for specific classes (e.g., predicting \textit{Pug} with over $14\%$ confidence on blank black inputs). This diagnostic result indicates the presence of uncalibrated logit priors and contextual overfitting, confirming that fine-grained classification from scratch heavily exploits global background distribution artifacts when species-specific visual features are absent.
 
 \begin{figure}[t]
     \centering

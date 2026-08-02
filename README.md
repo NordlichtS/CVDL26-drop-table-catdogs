@@ -6,7 +6,7 @@ Fine-grained animal recognition project for the CVDL SEP challenge.
 
 The current submission is built as a two-stage pipeline:
 
-1. `Final_Project/detector.py` runs a YOLOv6s detector and selects the largest cat or dog in the image.
+1. `Final_Project/detector.py` runs a YOLOv6 detector and selects the largest cat or dog in the image.
 2. `Final_Project/animalClassifier.py` runs an EfficientNetV2-S breed classifier on the cropped animal.
 3. `AnimalRecognitionChallenge/inference.py` wraps both stages for the official evaluation interface and returns a class index in `0..19` or `-1` for reject.
 

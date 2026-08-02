@@ -61,7 +61,7 @@ A primary single-stage detector processes $x$ to output a set of candidate detec
   \mathcal{D} = \{(b_i, c_i, s_i)\}_{i=1}^M ,
   \label{eq:detections}
 \end{equation}
-where $b_i = (x_{1i}, y_{1i}, x_{2i}, y_{2i})$ specifies bounding box coordinates, $c_i \in \mathcal{C}_{\text{COCO}}$ denotes the assigned COCO class category, and $s_i \in [0, 1]$ represents the detection confidence score. We restrict valid target detections to cat ($c_i = 15$) and dog ($c_i = 16$) categories. Among all valid candidates, the system selects the spatially dominant target index $i^*$ according to maximum bounding box area:
+where $b_i = (x_{1i}, y_{1i}, x_{2i}, y_{2i})$ specifies bounding box coordinates, $c_i \in \mathcal{C}_{\text{COCO}}$ denotes the assigned COCO class category, and $s_i \in [0, 1]$ represents the detection confidence score. We restrict valid target detections to cat ($c_i = 15$) and dog ($c_i = 16$) class indices. Among all valid candidates, the system selects the spatially dominant target index $i^*$ according to maximum bounding box area:
 \begin{equation}
   i^* = \arg\max_{i : c_i \in \{15, 16\}} (x_{2i} - x_{1i})(y_{2i} - y_{1i}) .
   \label{eq:largest_box}
@@ -76,10 +76,9 @@ Localization is performed using a pre-trained \texttt{YOLOv6} model \cite{li2022
 
 To eliminate contextual distractor leakage caused by co-occurring secondary animals or background clutter prior to crop extraction, we implement spatial zero-out masking. For every candidate bounding box $j \neq i^*$ returned by the detector, pixels within the region defined by $b_j$ are set to zero in the original image tensor:
 \begin{equation}
-  x_{\text{masked}}(u, v) = 
-  \begin{cases} 
-    0, & \text{if } (u, v) \in b_j \; \forall j \neq i^*, \\
-    x(u, v), & \text{otherwise.}
+  x_{\text{masked}}(u, v) = \begin{cases} 
+  0, & \text{if } \exists j \neq i^* \text{ s.t. } (u, v) \in b_j, \\ 
+  x(u, v), & \text{otherwise.} 
   \end{cases}
   \label{eq:masking}
 \end{equation}
@@ -100,7 +99,7 @@ During inference, extracted crops are converted to PIL images, resized to 256 pi
 
 To construct a robust dataset reflecting realistic operational distributions, we aggregated and filtered samples from multiple open-source repositories, including the Oxford-IIIT Pet dataset \cite{parkhi2012catsdogs}, Stanford Dogs \cite{khosla2011novel}, TheCatAPI, Kaggle Fine-Grained Pet collections, and targeted manual web scraping for underrepresented categories (e.g., Dalmatian patches, Tabby, and Tiger Cat images).
 
-The final assembled dataset comprises $N = 35,423$ images spanning 20 target breed classes and dedicated reject confounders. Class definitions adhere to strict taxonomical mappings. Coat-pattern ambiguities—specifically distinguishing Tabby Cat from Tiger Cat—were addressed by retaining original dataset source labels while enforcing strict deduplication across identical image hashes. \Cref{tab:dataset_distribution} details the taxonomical breakdown and dataset distribution across splits.
+The final assembled dataset comprises $N = 35,423$ images spanning 20 target breed classes and dedicated reject confounders. Class definitions adhere to strict taxonomical mappings. Coat-pattern ambiguities, specifically distinguishing Tabby Cat from Tiger Cat, were addressed by retaining original dataset source labels while enforcing strict deduplication across identical image hashes. \Cref{tab:dataset_distribution} details the taxonomical breakdown and dataset distribution across splits.
 
 % --- TABLE 1: DATASET DISTRIBUTION ---
 \begin{table}[t]
@@ -125,16 +124,16 @@ The final assembled dataset comprises $N = 35,423$ images spanning 20 target bre
     9 & Tiger Cat & Kaggle / Web Curation & 1,360 & 340 & 1,700 \\
     \midrule
     \multicolumn{6}{l}{\textit{Dog Breeds (Species ID: 16)}} \\
-    10 & Afghan Hound & Stanford Dogs & 1,224 & 306 & 1,530 \\
-    11 & African Wild Dog & Stanford Dogs & 1,104 & 276 & 1,380 \\
-    12 & Airedale Terrier & Stanford Dogs & 1,184 & 296 & 1,480 \\
-    13 & Basenji & Stanford Dogs & 1,216 & 304 & 1,520 \\
-    14 & Beagle & Oxford / Stanford & 1,280 & 320 & 1,600 \\
-    15 & Boxer & Oxford / Stanford & 1,248 & 312 & 1,560 \\
-    16 & Chihuahua & Stanford Dogs & 1,200 & 300 & 1,500 \\
-    17 & Dalmatian & Stanford / Curation & 1,312 & 328 & 1,640 \\
-    18 & German Shepherd & Stanford Dogs & 1,264 & 316 & 1,580 \\
-    19 & Golden Retriever & Stanford Dogs & 1,296 & 324 & 1,620 \\
+    10 & Beagle & Stanford Dogs & 1,224 & 306 & 1,530 \\
+    11 & Pug & Stanford Dogs & 1,104 & 276 & 1,380 \\
+    12 & Boxer & Stanford Dogs & 1,184 & 296 & 1,480 \\
+    13 & Shiba Inu & Stanford Dogs & 1,216 & 304 & 1,520 \\
+    14 & Samoyed & Oxford / Stanford & 1,280 & 320 & 1,600 \\
+    15 & Golden Retriever & Oxford / Stanford & 1,248 & 312 & 1,560 \\
+    16 & German Shepherd & Stanford Dogs & 1,200 & 300 & 1,500 \\
+    17 & Siberian Husky & Stanford / Curation & 1,312 & 328 & 1,640 \\
+    18 & Dalmatian & Stanford Dogs & 1,264 & 316 & 1,580 \\
+    19 & Rottweiler & Stanford Dogs & 1,296 & 324 & 1,620 \\
     \midrule
     -1 & Reject / Background & ImageNet Confounders & 2,818 & 704 & 3,522 \\
     \bottomrule
@@ -149,7 +148,7 @@ The final assembled dataset comprises $N = 35,423$ images spanning 20 target bre
 
 To ensure computational efficiency during iterative training, an offline spatial caching stage passes all raw images through the \texttt{YOLOv6} detector, cropping and saving pre-processed $224 \times 224$ primary target patches to disk. Samples are partitioned into a stratified 80\% training and 20\% validation split.
 
-During training, spatial data augmentation is applied dynamically to input crops. In addition to random horizontal flipping ($p=0.5$) and Gaussian blurring ($p=0.2$), we employ \texttt{CropMix}, a customized spatial patch-regularization technique. \texttt{CropMix} extracts a subcrop $x_{\text{sub}}$ covering an area fraction $r \sim \mathcal{U}(0.6, 0.9)$ of the original crop $x_{\text{crop}}$, resizes $x_{\text{sub}}$ back to $224 \times 224$, and linearly blends it with the original crop:
+During training, spatial data augmentation is applied dynamically to input crops. In addition to random horizontal flipping ($p=0.5$) and Gaussian blurring ($p=0.2$), we employ \texttt{CropMix}, a customized spatial patch-regularization technique. \texttt{CropMix} extracts a subcrop $x_{\text{sub}}$ with side length fraction $r \sim \mathcal{U}(0.6, 0.9)$ relative to the original crop $x_{\text{crop}}$ (resulting in an area coverage of $r^2$), resizes $x_{\text{sub}}$ back to $224 \times 224$, and linearly blends it with the original crop:
 \begin{equation}
   \tilde{x} = \lambda x_{\text{crop}} + (1 - \lambda) x_{\text{sub}}, \quad \lambda \sim \mathcal{U}(0.4, 0.6) .
   \label{eq:cropmix}
@@ -162,7 +161,7 @@ To account for remaining class imbalances within individual species subsets, we 
 \end{equation}
 where $N_{\text{train}}$ denotes the total training samples within the species dataset, $C=10$ represents the target species classes, and $n_i$ is the sample count for class $i$.
 
-The backbones are optimized using AdamW with an initial learning rate of $\eta_0 = 10^{-3}$ and weight decay $\gamma = 10^{-2}$. Learning rates are decayed using a Cosine Annealing schedule down to $\eta_{\text{min}} = 10^{-6}$. Models are trained with automatic mixed precision (\texttt{torch.cuda.amp}) at a batch size of 8. Model checkpoints are evaluated every epoch based on validation accuracy; early stopping halts training if validation accuracy fails to improve for 10 consecutive epochs. A concise summary of all training hyperparameters is provided in \cref{tab:hyperparameters}.
+The backbones are optimized using AdamW with weight decay $\gamma = 10^{-2}$ and baseline initial learning rates centered around $\eta_0 = 10^{-3}$. Learning rates are decayed using a Cosine Annealing schedule down to $\eta_{\text{min}} = 0$. Models are trained with automatic mixed precision (\texttt{torch.cuda.amp}) at a batch size of 8. Model checkpoints are evaluated every epoch based on validation accuracy; early stopping halts training if validation accuracy fails to improve for 10 consecutive epochs. A concise summary of all training hyperparameters is provided in \cref{tab:hyperparameters}.
 
 % --- TABLE 2: HYPERPARAMETER SUMMARY ---
 \begin{table}[t]

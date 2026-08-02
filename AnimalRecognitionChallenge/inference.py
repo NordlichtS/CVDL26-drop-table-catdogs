@@ -18,6 +18,8 @@ python inference.py --image-folder <folder> """
 
 
 import os
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.environ["TORCH_HUB_TRUST_REPO"] = "1"
 import subprocess
 import argparse
@@ -116,33 +118,19 @@ class Model(nn.Module):
     def forward(self, image: Image.Image) -> int:
         import time
         t_start = time.perf_counter()
-
-        # ---------------------------------------------------------
-        # 1. Preprocessing (PIL zu BGR)
-        # ---------------------------------------------------------
         image_np = np.array(image)
         img_bgr = image_np[:, :, ::-1].copy()
-        
         t_prep_end = time.perf_counter()
         prep_time = t_prep_end - t_start
-
-        # ---------------------------------------------------------
-        # 2. Detektor (YOLO)
-        # ---------------------------------------------------------
         resized_crop_np, species, meta = self.animal_detector.detect_largest_animal(img_bgr)
-        
         t_yolo_end = time.perf_counter()
         yolo_time = t_yolo_end - t_prep_end
-
         # REJECT-FALL: Wenn YOLO kein Tier findet
         if meta is None or species == "neither":
             print(f"[REJECT] Kein Zieltier gefunden (YOLO sagt 'neither' oder Fehler). "
                   f"Zeit: [Prep: {prep_time:.4f}s | YOLO: {yolo_time:.4f}s]")
             return REJECT
-        
-        # ---------------------------------------------------------
-        # 3. Klassifizierung (EfficientNet / Dein Scratch-Modell)
-        # ---------------------------------------------------------
+
         t_class_start = time.perf_counter()
 
         if species == "cat":

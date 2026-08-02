@@ -1,0 +1,60 @@
+
+1. CONTRADICTION — Final_Report/sec/00_abstract.tex:2 first presents secondary-animal zero masking as part of the implemented pipeline, and the claim is repeated in Final_Report/sec/01_introduction.tex:12-16, Final_Report/sec/03_method.tex:77-84, Final_Report/sec/04_experiments.tex:132, and Final_Report/sec/05_conclusion.tex:4. In the submitted implementation, however, the entire masking block is commented out in Final_Project/detector.py:131-146, so the essay should state that masking was tested but is disabled in the submitted pipeline, or write the code to re enable it at users choice.
+--Done
+
+2. METHODOLOGICAL OVERCLAIM — Final_Report/sec/00_abstract.tex:2 first says Grad-CAM confirms that spatial masking suppresses shortcut learning, with related claims in Final_Report/sec/01_introduction.tex:19 and Final_Report/sec/02_related_work.tex:22. Final_Project/generate_xai_panel.py:158-176 sends the original resized image directly to a classifier without YOLO cropping or masking, so these visualizations can diagnose classifier attention but cannot establish the causal effect of the disabled masking intervention; this limited interpretation agrees with Grad-CAM's stated purpose at https://arxiv.org/abs/1610.02391.
+--Ignore
+
+3. UNSURE — Final_Report/sec/00_abstract.tex:2 first reports 92.35 percent overall accuracy, and Final_Report/sec/04_experiments.tex:102-119 and Final_Report/sec/05_conclusion.tex:11 report 92.35 percent end-to-end accuracy and macro F1 0.924. No evaluation log, or deterministic evaluation script was found that reproduces these values ?
+--> pth eval files
+
+4. INTERNAL AND CODE CONTRADICTION — Final_Report/sec/01_introduction.tex:12 first says image rejection is delegated to detector thresholding, and Final_Report/sec/04_experiments.tex:129 says detections below a confidence threshold are rejected, while Final_Report/sec/03_method.tex:87 explicitly says the operational system uses no classification confidence rejection threshold. Final_Project/detector.py:112-129 reads detector confidence but never compares it with a project-level threshold, so the essay should distinguish any threshold internal to YOLOv6 inference from application-level rejection and should not claim a submitted threshold rule that the code does not implement.
+-- wrong
+
+
+5. UNSURE — Final_Report/sec/01_introduction.tex:22 says all trained checkpoints and reproducibility scripts are publicly available, but  cat_scratch.pth and  dog_scratch.pth are not present,nor does it state where those files can be downloaded. README should provide stable checkpoint URLs and hashes, or narrow the claim to what actually distributed.
+--> gitignore but uploaded!
+
+6. UNSURE — Final_Report/sec/03_method.tex:64 calls 15 and 16 COCO category IDs, whereas Final_Project/detector.py:39-41 uses them as zero-based YOLOv6 class indices. The values are correct for cat and dog in YOLOv6's zero-based class list, so this is terminology ambiguity rather than a demonstrated pipeline error; write "zero-based YOLOv6 COCO class indices 15 and 16" and cite https://github.com/meituan/YOLOv6/blob/main/data/coco.yaml.
+--rewrote
+
+7. MATH DESCRIPTION ERROR — Final_Report/sec/03_method.tex:80-84 uses a universal condition in the masking equation, which zeros a pixel only when it belongs to every secondary box. The surrounding prose clearly intends the union of secondary detections, so the condition should use an existential statement, meaning that there exists a secondary box j not equal to the selected target i star that contains the pixel.
+--good spot
+
+8. CONTRADICTION — Final_Report/sec/03_method.tex:116-139 presents a taxonomy containing classes such as Persian and Afghan Hound, but Final_Project/train.py:23-24 and AnimalRecognitionChallenge/inference.py:47-67 define the submitted taxonomy with classes including Ragdoll, Sphynx, Pug, Shiba Inu, Samoyed, and Rottweiler. Table 1 should use the exact inference mapping.
+--> good spot
+
+9. FOR THE SUBMITTED TRAINER; UNSURE FOR UNRETAINED PREPROCESSING — Final_Report/sec/03_method.tex:150 and Final_Report/sec/04_experiments.tex:29 claim a stratified 80/20 split with perceptual-hash duplicate control, but Final_Project/train.py:253-257 performs an unseeded random shuffle and slice separately for each species, and no perceptual-hashing implementation or split manifest was found. 
+--> ignore
+
+10. UNSURE, DESCRIPTION MISMATCH — Final_Report/sec/03_method.tex:152 and Final_Report/sec/03_method.tex:187 describe random horizontal flipping with p=0.5 and Gaussian blur with p=0.2, but Final_Project/train.py:65-70 appends one transformed copy for every source image whenever an augmentation flag is enabled. Unless a different retained trainer generated the reported runs, mirror, blur, and CropMix should be described as dataset-expansion modes rather than per-sample Bernoulli transforms.
+-- args
+
+11. MATH DESCRIPTION ERROR — Final_Report/sec/03_method.tex:152 says CropMix selects an area fraction r uniformly between 0.6 and 0.9, but Final_Project/train.py:104-105 applies r independently as the crop's width fraction and height fraction. The area fraction is r squared, from 0.36 to 0.81.
+--done
+
+12. IMPLEMENTATION CONTRADICTION — Final_Report/sec/03_method.tex:165 and Final_Report/sec/04_experiments.tex:212 claim cosine annealing from 1e-3 to 1e-6, but Final_Project/train.py:275-276 omits eta_min and therefore uses PyTorch's default of zero. The shell scripts also pass several starting learning rates rather than one universal value, so the essay should report the actual starting rate for each cited run and cosine annealing toward zero, as documented at https://docs.pytorch.org/docs/stable/generated/torch.optim.lr_scheduler.CosineAnnealingLR.html.
+--> done
+
+13. UNSURE — Final_Report/sec/04_experiments.tex:65 says the epoch sweep used 100, 1000, 3000 epochs, while Final_Project/run_training.sh:18-64 and Final_Project/run_training_data.sh:18-65 contain configured runs of 100, 200, 1000, 10000 epochs, but no 3000 epoch command. A 3000 epoch run could have been launched manually? 
+--> multiple runs... ignore
+
+14. DESCRIPTION-IMPLEMENTATION MISMATCH — Final_Report/sec/04_experiments.tex:68 lists rotation among the active species-classifier augmentations, but no rotation operation exists in Final_Project/train.py. Rotation should be removed from the description of the submitted trainer.
+--> deleted as not suffiecient and basic bug
+
+15. CONTRADICTION — Final_Report/sec/04_experiments.tex:71 says training also stops when the train-validation accuracy gap exceeds 7 percent, but Final_Project/train.py:199-218 implements only patience-based stopping when validation accuracy fails to improve. The 7 percent rule should be removed, labeled as manual monitoring, or implemented and tied to the reported runs.
+--> ignore
+
+16. CONTRADICTION — Final_Report/sec/04_experiments.tex:132 says masking is bypassed when a secondary animal occupies more than 40 percent of the crop, but Final_Project/detector.py contains no overlap-ratio calculation or 40 percent condition and its masking code is disabled. This rule should be removed from the implemented-method description or clearly labeled as proposed work.
+--> ignore
+
+17. FIGURE-CAPTION ERROR — Final_Report/sec/04_experiments.tex:149-154 says Figure 4 shows a non-Pug target predicted as Pug with 87.66 percent confidence, but Figure 4 in final_paper.pdf page 7 labels the example "GT: Pug, Pred: Samoyed (85.6%)" it looks more like Pug occlusion example in Figure 7 .
+
+18. UNSURE — Final_Report/sec/04_experiments.tex:174-179 gives stage times of 8.12+ 112.45+ 14.30+ 65.76 = 200.63 ms, while Final_Report/sec/04_experiments.tex:190-193 presents pie-chart values of 5.18 + 4.65 + 166.12 + 24.64 = 200.59 ms. The difference can be rounding or process gaps, but the different stage allocation is unexplained and may represent two profiling protocols; the essay should identify the protocol and hardware for each chart or retain only one verified chart with consistent labels.
+-- done
+
+19. NOT A CONTRADICTION — Final_Report/sec/04_experiments.tex:212 correctly states that PyTorch 2.6 changed the default behavior of torch.load, and Final_Project/animalClassifier.py:31 explicitly uses weights_only=False. The technical statement should remain, but the essay should replace or supplement the older generic PyTorch citation with https://docs.pytorch.org/docs/stable/notes/serialization.html and state that weights_only=False is appropriate only for trusted checkpoint files.
+-- done
+
+20. NOT A CONTRADICTION — Final_Report/main.bib:113-117 cites MegaDetector V6 from Microsoft AI for Good Lab, and current official Microsoft documentation confirms MegaDetectorV6 at https://microsoft.github.io/MegaDetector/ and lists its variants at https://microsoft.github.io/MegaDetector/model_zoo/. The earlier concern resulted from checking the legacy agentmorris repository; the bibliography entry is substantively valid, although it should include the official URL and an access date or cite the specific release artifact required by the report style.
+-- done 

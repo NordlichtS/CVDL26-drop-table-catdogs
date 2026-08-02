@@ -1,2 +1,91 @@
 \section{Appendix}
 \label{sec:appendix}
+
+\subsection{Author Contributions}
+\label{sec:contributions}
+
+To ensure full transparency, the individual contributions of each team member are detailed below:
+
+\begin{itemize}
+    \item \textbf{Jan Sternberg:}
+    \begin{itemize}
+        \item \textbf{System Architecture \& Model Design:}
+        \begin{itemize}
+            \item Designed and implemented the core \texttt{AnimalClassifier} architecture based on an EfficientNetV2-S backbone initialized completely from scratch (\texttt{weights=None}), integrating a modified classification head with a regularized dropout probability \cite{tan2021efficientnetv2}.
+            \item Developed a secondary \texttt{CompareClassifier} utilizing a pretrained ResNet18 model to serve as a baseline for performance comparisons \cite{kornblith2019transfer}.
+        \end{itemize}
+        \item \textbf{Object Detection \& Spatial Preprocessing:}
+        \begin{itemize}
+            \item Integrated the YOLOv6 object detection framework via PyTorch Hub to automatically localize and crop the largest target animal (distinguishing between cat species ID 15 and dog species ID 16) to a standardized resolution \cite{li2022yolov6}.
+            \item Implemented automated weight-download routines and robust checkpoint-loading mechanisms featuring security patches for modern PyTorch serialization standards (\texttt{weights\_only=False}) \cite{paszke2019pytorch}.
+            \item Formulated a data-shuffling and structuring script to automatically organize raw image directories into sequential, ID-based file structures paired with a unified CSV labeling system.
+        \end{itemize}
+        \item \textbf{Dataset Engineering \& Multi-Source Integration:}
+        \begin{itemize}
+            \item Developed and executed automated data collection and integration pipelines across multiple benchmark repositories, including the Oxford-IIIT Pet Dataset \cite{parkhi2012catsdogs}, Stanford Dogs Dataset \cite{khosla2011novel}, Kaggle cat breeds \cite{deng2009imagenet}, and The Cat API \cite{cat_api}.
+            \item Implemented robust checkpoint-aware file counters and duplicate-prevention mechanisms (\texttt{get\_next\_counter}) to safely merge local classes and external image archives into a unified, clean dataset structure.
+        \end{itemize}
+        \item \textbf{Advanced Training Pipelines, SLURM Job Management \& Execution:}
+        \begin{itemize}
+            \item Engineered a high-performance training script featuring offline spatial caching, automatic mixed precision (AMP) via PyTorch \texttt{grad\_scaler}, AdamW optimization, and Cosine Annealing learning rate schedules \cite{paszke2019pytorch}.
+            \item Configured, scheduled, and managed comprehensive batch training jobs on high-performance computing clusters using \textbf{SLURM}, setting up persistent error/output logging (\texttt{.log} files) and monitoring active runs.
+            \item Developed custom data augmentation routines—including horizontal mirroring, Gaussian blurring, and a localized multi-scale patch regularization method (\texttt{CropMix})—to improve model generalization \cite{yun2019cutmix}.
+            \item Implemented automated handling of class imbalances via dynamic class-weight calculations in CrossEntropyLoss, as well as alternative multi-GPU scaling scripts leveraging \texttt{nn.DataParallel}, learning rate warmups, and weighted random sampling \cite{paszke2019pytorch}.
+        \end{itemize}
+        \item \textbf{Evaluation, Explainable AI (Heatmaps) \& Performance Visualization:}
+        \begin{itemize}
+            \item Built an automated evaluation utility to parse multiple \texttt{.pth} checkpoint files, inspect tensor structures, and extract detailed validation and per-class accuracy metrics.
+            \item Implemented an advanced Explainable AI (XAI) tool using \textbf{Grad-CAM} to dynamically compute target convolutional feature layers, extract top predicted class indices, and generate thermal \textbf{heatmaps} overlaid onto test images with automatic directory creation and sequential naming conventions (\texttt{CAM\_Heat\_Map}) \cite{selvaraju2017grad}.
+            \item Created an automated logging, regex-parsing, and graphing pipeline to visualize multi-epoch \textbf{loss and accuracy curves} (e.g., tracking training vs. validation performance, highlighting optimal checkpoints and maximum validation accuracies) \cite{prechelt1998early}.
+        \end{itemize}
+        \item \textbf{Documentation \& Project Structuring:}
+        \begin{itemize}
+            \item Structured, drafted, and authored the comprehensive final project report and documentation, outlining the end-to-end computer vision pipeline, experimental setups, hyperparameter configurations, quantitative evaluations, and visual interpretability insights.
+        \end{itemize}
+    \end{itemize}
+
+    \item \textbf{Marc Koester:}
+    \begin{itemize}
+        \item \textbf{Project Organization \& Leadership:}
+        \begin{itemize}
+            \item Organized the project infrastructure, set up the Discord channel, and planned regular group meetings.
+        \end{itemize}
+        \item \textbf{Dataset Expansion \& Balancing:}
+        \begin{itemize}
+            \item Added 6,000 pictures to the dataset to complement cat and dog classes that were lacking sufficient training data.
+            \item Coded the class-imbalance argument and implemented a command-line solution using \texttt{--} to handle class imbalances for breeds with skewed image distributions.
+        \end{itemize}
+        \item \textbf{Data Testing \& Exploration:}
+        \begin{itemize}
+            \item Tested both old and new dataset versions on Kaggle and explored AI-generated image options.
+        \end{itemize}
+        \item \textbf{Presentation \& Formatting:}
+        \begin{itemize}
+            \item Led the presentation creation, structured the slides, gave everyone a rough script, and implemented a coherent design across all presentation slides.
+        \end{itemize}
+    \end{itemize}
+
+    \item \textbf{Ivan Kazakov:}
+    \begin{itemize}
+        \item Handled data acquisition for the largest dataset in Kaggle.
+        \item Coded the initial model for EfficientNetV2-S and conducted related research \cite{tan2021efficientnetv2}.
+        \item Handled data acquisition, dataset cleaning, and the preprocessing pipeline.
+        \item Co-wrote the final paper section for the Detector and Animal Classifier \cite{li2022yolov6}.
+    \end{itemize}
+
+    \item \textbf{Huang Ziyang:}
+    \begin{itemize}
+        \item Created and initialized the collaborative repository.
+        \item Proofread the final paper.
+        \item Compared the AdamW vs. the Ranger optimizer for the presentation.
+    \end{itemize}
+\end{itemize}
+
+\subsection{Code and Environment Reproducibility}
+\label{sec:code_reproducibility}
+
+The complete source code, trained model checkpoints, and inference scripts are hosted in our repository:
+\begin{center}
+    \url{https://github.com/your-org/your-repo}
+\end{center}
+Please refer to the repository README file for environment setup instructions and data preparation steps.

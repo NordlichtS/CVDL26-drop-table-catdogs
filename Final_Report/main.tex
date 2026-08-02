@@ -54,7 +54,6 @@ Marc Koester\\
 \input{sec/04_experiments}
 \input{sec/05_conclusion}
 
-
 {
     \small
     \bibliographystyle{ieeenat_fullname}
@@ -64,61 +63,8 @@ Marc Koester\\
 \clearpage
 \appendix
 
-\section{Contribution}
-\label{sec:06_appendixx}
+\section{Appendix}
+\label{sec:appendix}
 \input{sec/06_appendixx}
-
-\section{Detailed Training History Curves}
-\label{sec:appendix_curves}
-
-This appendix presents the full training and validation loss alongside accuracy progression curves across all seven experimental configurations for both Cat and Dog datasets.
-
-\begin{figure*}[htbp]
-    \centering
-    \begin{subfigure}[b]{0.48\textwidth}
-        \centering
-        \includegraphics[width=\textwidth]{../L_A_Graphs/training_output_198292_7_dog.png}
-        \caption{Task 7: Dog Baseline ($78.66\%$)}
-    \end{subfigure}
-    \hfill
-    \begin{subfigure}[b]{0.48\textwidth}
-        \centering
-        \includegraphics[width=\textwidth]{../L_A_Graphs/training_output_198292_7_cat.png}
-        \caption{Task 7: Cat Baseline ($46.13\%$)}
-    \end{subfigure}
-    
-    \vspace{0.3cm}
-    
-    \begin{subfigure}[b]{0.48\textwidth}
-        \centering
-        \includegraphics[width=\textwidth]{../L_A_Graphs/training_output_198292_3_dog.png}
-        \caption{Task 3: Dog Blur ($82.96\%$)}
-    \end{subfigure}
-    \hfill
-    \begin{subfigure}[b]{0.48\textwidth}
-        \centering
-        \includegraphics[width=\textwidth]{../L_A_Graphs/training_output_198292_3_cat.png}
-        \caption{Task 3: Cat Blur ($47.13\%$)}
-    \end{subfigure}
-
-    \vspace{0.3cm}
-    
-    \begin{subfigure}[b]{0.48\textwidth}
-        \centering
-        \includegraphics[width=\textwidth]{../L_A_Graphs/training_output_198292_5_dog.png}
-        \caption{Task 5: Dog CropMix ($84.99\%$)}
-    \end{subfigure}
-    \hfill
-    \begin{subfigure}[b]{0.48\textwidth}
-        \centering
-        \includegraphics[width=\textwidth]{../L_A_Graphs/training_output_198292_4_cat.png}
-        \caption{Task 4: Cat Mirror ($49.89\%$)}
-    \end{subfigure}
-    
-    \caption{Comparison of training loss and accuracy dynamics across Cat and Dog classification runs under different augmentation strategies when trained from uninitialized weights.}
-    \label{fig:appendix_training_curves}
-\end{figure*}
-% supplementary material
-% \input{sec/X_suppl}
 
 \end{document}

@@ -1,8 +1,4 @@
-\section{Appendix}
-\label{sec:appendix}
-
-\subsection{Author Contributions}
-\label{sec:contributions}
+\subsection{Contribution}
 
 To ensure full transparency, the individual contributions of each team member are detailed below:
 
@@ -65,12 +61,37 @@ To ensure full transparency, the individual contributions of each team member ar
         \end{itemize}
     \end{itemize}
 
-    \item \textbf{Ivan Kazakov:}
+
     \begin{itemize}
-        \item Handled data acquisition for the largest dataset in Kaggle.
-        \item Coded the initial model for EfficientNetV2-S and conducted related research \cite{tan2021efficientnetv2}.
-        \item Handled data acquisition, dataset cleaning, and the preprocessing pipeline.
-        \item Co-wrote the final paper section for the Detector and Animal Classifier \cite{li2022yolov6}.
+        \item \textbf{Ivan Kazakov:}
+        \begin{itemize}
+            \item \textbf{Dataset Acquisition \& Curation:}
+            \begin{itemize}
+                \item Sourced core breed datasets after the initial API approach proved insufficient: the Kaggle cat-breed dataset ($\sim$1,000 images/class), the Tsinghua Dogs dataset, and a Dalmatian subset from an additional Kaggle dog dataset.
+                \item Assembled and published the merged $\sim$26k-image / 20-class training dataset on Kaggle.
+            \end{itemize}
+            \item \textbf{Training Pipeline \& Scaling:}
+            \begin{itemize}
+                \item Collaborated on the EfficientNetV2-S training pipeline development.
+                \item Scaled training infrastructure from a single P100 to 2x T4 GPUs using DataParallel; identified, diagnosed, and mitigated CPU-side image decoding bottlenecks.
+            \end{itemize}
+            \item \textbf{Model Development \& Experiments:}
+            \begin{itemize}
+                \item Trained the combined 20-class model achieving 84.9\% test accuracy (macro F1 0.829) with pretrained initialization, as well as the required from-scratch baseline (80 epochs, 78.1\% / 0.752), providing the comparative results for the report.
+                \item Co-implemented the species-split architecture (separate cat and dog models via class presets) and analyzed the dogs-vs-cats transfer asymmetry alongside its ImageNet class-composition background.
+                \item Evaluated a community cat-breed checkpoint as an alternative initialization strategy and integrated a robust checkpoint-format loader.
+            \end{itemize}
+            \item \textbf{System Integration \& Inference:}
+            \begin{itemize}
+                \item Supported the end-to-end evaluation and error analysis framework that contributed to securing the group's first-place challenge submission (73.28\%).
+            \end{itemize}
+            \item \textbf{Report \& Presentation:}
+            \begin{itemize}
+                \item Delivered presentation segments covering data acquisition, training setups, and the pretrained-vs-scratch comparison; produced corresponding training-curve and performance comparison figures.
+                \item Cowrote the System Architecture, Classification Model, and Integration Findings part of the final paper in the experiments and Related Work section
+                \item Published both pipeline editions (combined and species-split) as fully documented repositories and notebooks.
+            \end{itemize}
+        \end{itemize}
     \end{itemize}
 
     \item \textbf{Huang Ziyang:}
@@ -81,12 +102,128 @@ To ensure full transparency, the individual contributions of each team member ar
         \item Created first Draft of the README.md
     \end{itemize}
 \end{itemize}
+%
 
 \subsection{Code and Environment Reproducibility}
 \label{sec:code_reproducibility}
 
 The complete source code, trained model checkpoints, and inference scripts are hosted in our repository:
 \begin{center}
-    \url{https://github.com/your-org/your-repo}
+    \href{https://github.com/NordlichtS/CVDL26-drop-table-catdogs}{CVDL26-drop-table-catdogs}
 \end{center}
 Please refer to the repository README file for environment setup instructions and data preparation steps.
+
+
+\subsection{Detailed Training History Curves}
+\label{sec:appendix_curves}
+
+This appendix presents the full training and validation loss alongside accuracy progression curves across all seven experimental configurations for both Cat and Dog datasets.
+
+\begin{figure*}[htbp]
+    \centering
+    % Task 1: Baseline (Standard)
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../Epoch/loss_Graphs/training_output_198292_1_dog.png}
+        \caption{Task 1: Dog Baseline ($\text{LR}=1\times 10^{-5}$, 100 Ep.)}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../Epoch/loss_Graphs/training_output_198292_1_cat.png}
+        \caption{Task 1: Cat Baseline ($\text{LR}=1\times 10^{-5}$, 100 Ep.)}
+    \end{subfigure}
+    
+    \vspace{0.3cm}
+    
+    % Task 2: Balanced Weights
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../Epoch/loss_Graphs/training_output_198292_2_dog.png}
+        \caption{Task 2: Dog Balanced Weights ($\text{LR}=1\times 10^{-5}$, 100 Ep.)}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../Epoch/loss_Graphs/training_output_198292_2_cat.png}
+        \caption{Task 2: Cat Balanced Weights ($\text{LR}=1\times 10^{-5}$, 100 Ep.)}
+    \end{subfigure}
+
+    \vspace{0.3cm}
+
+    % Task 3: Blur
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../Epoch/loss_Graphs/training_output_198292_3_dog.png}
+        \caption{Task 3: Dog Blur ($\text{LR}=1\times 10^{-5}$, 100 Ep., $82.96\%$)}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../Epoch/loss_Graphs/training_output_198292_3_cat.png}
+        \caption{Task 3: Cat Blur ($\text{LR}=1\times 10^{-5}$, 100 Ep., $47.13\%$)}
+    \end{subfigure}
+
+    \vspace{0.3cm}
+
+    % Task 4: Mirror
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../Epoch/loss_Graphs/training_output_198292_4_dog.png}
+        \caption{Task 4: Dog Mirror ($\text{LR}=1\times 10^{-5}$, 100 Ep.)}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../Epoch/loss_Graphs/training_output_198292_4_cat.png}
+        \caption{Task 4: Cat Mirror ($\text{LR}=1\times 10^{-5}$, 100 Ep., $49.89\%$)}
+    \end{subfigure}
+
+    \vspace{0.3cm}
+
+    % Task 5: CropMix
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../Epoch/loss_Graphs/training_output_198292_5_dog.png}
+        \caption{Task 5: Dog CropMix ($\text{LR}=1\times 10^{-5}$, 100 Ep., $84.99\%$)}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../Epoch/loss_Graphs/training_output_198292_5_cat.png}
+        \caption{Task 5: Cat CropMix ($\text{LR}=1\times 10^{-5}$, 100 Ep.)}
+    \end{subfigure}
+
+    \vspace{0.3cm}
+
+    % Task 6: All Augmentations Combined
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../Epoch/loss_Graphs/training_output_198292_6_dog.png}
+        \caption{Task 6: Dog All Augs ($\text{LR}=1\times 10^{-5}$, 100 Ep.)}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../Epoch/loss_Graphs/training_output_198292_6_cat.png}
+        \caption{Task 6: Cat All Augs ($\text{LR}=1\times 10^{-5}$, 100 Ep., $53.73\%$)}
+    \end{subfigure}
+
+    \vspace{0.3cm}
+
+    % Task 7: Long Run Baseline
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../Epoch/loss_Graphs/training_output_198292_7_dog.png}
+        \caption{Task 7: Dog Extended Baseline ($\text{LR}=5\times 10^{-6}$, 1000 Ep., $78.66\%$)}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../Epoch/loss_Graphs/training_output_198292_7_cat.png}
+        \caption{Task 7: Cat Extended Baseline ($\text{LR}=5\times 10^{-6}$, 1000 Ep., $46.13\%$)}
+    \end{subfigure}
+    
+    \caption{Comprehensive comparison of training loss and accuracy dynamics across all Cat and Dog classification runs (Tasks 1--7) under various augmentation strategies and learning rates (all models trained from uninitialized weights).}
+    \label{fig:appendix_training_curves}
+\end{figure*}

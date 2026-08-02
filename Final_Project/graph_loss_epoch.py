@@ -8,7 +8,8 @@ output_folder = os.path.join("Epoch", "loss_Graphs")
 os.makedirs(output_folder, exist_ok=True)
 
 # 2. Alle Logdateien im aktuellen Ordner suchen, die mit "training_output_" anfangen
-log_files = [f for f in os.listdir('./') if f.startswith('training_output_') and f.endswith('.log')]
+# In Zeile 11:
+log_files = [f for f in os.listdir('./TrainingLogs') if f.startswith('training_output_') and f.endswith('.log')]
 
 if not log_files:
     print("Keine Logdateien mit dem Präfix 'training_output_' im aktuellen Ordner gefunden.")
@@ -32,7 +33,8 @@ print(f"Gefundene Logdateien: {log_files}\nStarte Verarbeitung...")
 
 for log_file in log_files:
     # Dateiinhalt einlesen
-    with open(log_file, 'r', encoding='utf-8') as f:
+
+    with open(os.path.join('./TrainingLogs', log_file), 'r', encoding='utf-8') as f:
         content = f.read()
     
     matches = pattern.findall(content)
@@ -79,11 +81,11 @@ for log_file in log_files:
         best_val_acc = df.loc[best_val_idx, 'val_acc']
         
         # Beste Epoche als vertikale Linie und goldener Stern einzeichnen (Präsentations-Tipp 2)
-        ax1.axvline(x=best_epoch, color='gray', linestyle='--', alpha=0.7, label=f'Beste Epoche ({best_epoch})')
-        ax1.plot(best_epoch, best_val_loss, marker='*', markersize=12, color='gold', markeredgecolor='black', label='Bester Checkpoint')
+        ax1.axvline(x=best_epoch, color='gray', linestyle='--', alpha=0.7, label=f'Best Epoch ({best_epoch})')
+        ax1.plot(best_epoch, best_val_loss, marker='*', markersize=12, color='gold', markeredgecolor='black', label='Best Checkpoint')
         
         ax1.set_title(f"Model Loss ({species})", fontsize=14, fontweight='bold', pad=15)
-        ax1.set_xlabel("Epoche", fontsize=11, labelpad=8)
+        ax1.set_xlabel("Epoch", fontsize=11, labelpad=8)
         ax1.set_ylabel("Loss", fontsize=11, labelpad=8)
         ax1.legend(frameon=True, facecolor='white', framealpha=0.9, fontsize=10)
         ax1.grid(True, linestyle=":", alpha=0.6)
@@ -92,16 +94,16 @@ for log_file in log_files:
         ax2.plot(df['epoch'], df['train_acc'], label="Train Accuracy", color=colors['train_acc'], linewidth=2.5, marker='o', markersize=4)
         ax2.plot(df['epoch'], df['val_acc'], label="Validation Accuracy", color=colors['val_acc'], linewidth=2.5, marker='s', markersize=4)
         
-        ax2.axvline(x=best_epoch, color='gray', linestyle='--', alpha=0.7, label=f'Beste Epoche ({best_epoch})')
+        ax2.axvline(x=best_epoch, color='gray', linestyle='--', alpha=0.7, label=f'Best Epoch ({best_epoch})')
         ax2.plot(best_epoch, best_val_acc, marker='*', markersize=12, color='gold', markeredgecolor='black', label=f'Max Acc: {best_val_acc:.2f}%')
         
         ax2.set_title(f"Model Accuracy ({species})", fontsize=14, fontweight='bold', pad=15)
-        ax2.set_xlabel("Epoche", fontsize=11, labelpad=8)
+        ax2.set_xlabel("Epoch", fontsize=11, labelpad=8)
         ax2.set_ylabel("Accuracy (%)", fontsize=11, labelpad=8)
         ax2.legend(frameon=True, facecolor='white', framealpha=0.9, fontsize=10)
         ax2.grid(True, linestyle=":", alpha=0.6)
         
-        plt.suptitle(f"Trainingsverlauf für Klasse: {species} (aus {log_file})", fontsize=16, fontweight='bold', y=1.02)
+        plt.suptitle(f"Training Curve for Class: {species} (from {log_file})", fontsize=16, fontweight='bold', y=1.02)
         plt.tight_layout()
         
         # Dynamisch im Zielordner speichern

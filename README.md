@@ -1,192 +1,251 @@
-# CVDL26 Drop Table Cat Dogs
+Here is the complete, fully merged **`README.md`** translated into English and with all emojis removed:
 
-Fine-grained animal recognition project for the CVDL SEP challenge.
+---
+
+# CVDL26: Drop Table Cat Dogs
+
+> **Fine-Grained Animal Recognition System (Cat and Dog Breed Recognition Cascade)** > *Developed for the CVDL SEP Challenge (LMU Munich)*
+
+---
 
 ## Overview
 
-The current submission is built as a two-stage pipeline:
+This project implements a two-stage deep learning pipeline (cascade) for fine-grained recognition and classification of cat and dog breeds:
 
-1. `Final_Project/detector.py` runs a YOLOv6 detector and selects the largest cat or dog in the image.
-2. `Final_Project/animalClassifier.py` runs an EfficientNetV2-S breed classifier on the cropped animal.
-3. `AnimalRecognitionChallenge/inference.py` wraps both stages for the official evaluation interface and returns a class index in `0..19` or `-1` for reject.
+1. **Detection:** [`Final_Project/detector.py`](https://www.google.com/search?q=./Final_Project/detector.py) utilizes a **YOLOv6** model to locate the largest animal (cat or dog) in the image and extract a precise crop.
+2. **Classification:** [`Final_Project/animalClassifier.py`](https://www.google.com/search?q=./Final_Project/animalClassifier.py) processes the cropped animal image with an **EfficientNetV2-S** model to predict the exact breed.
+3. **Inference Pipeline:** [`AnimalRecognitionChallenge/inference.py`](https://www.google.com/search?q=./AnimalRecognitionChallenge/inference.py) combines both stages for the official evaluation interface and returns a class index.
 
-The challenge label order is fixed in `AnimalRecognitionChallenge/inference.py`:
+By decoupling the detector and classifier, the classification model receives a standardized, centered animal crop rather than the entire, potentially distracting background.
 
-- `0..9` = cat breeds
-- `10..19` = dog breeds
-- `-1` = no target animal / reject
+### Label Mapping
+
+The mapping of label IDs is fixed in `AnimalRecognitionChallenge/inference.py`:
+
+| Label ID | Category | Description |
+| --- | --- | --- |
+| `0 .. 9` | **Cats** | Breed classes `0` to `9` |
+| `10 .. 19` | **Dogs** | Breed classes `10` to `19` |
+| `-1` | **Reject** | No target animal detected / Rejection |
+
+---
 
 ## Technology Stack
 
-- Python
-- PyTorch and TorchVision
-- YOLOv6 via `torch.hub`
-- EfficientNetV2-S for breed classification
-- OpenCV, NumPy, Pillow
-- pandas, scikit-learn, tqdm
-- Grad-CAM for explainable AI visualizations
-- Slurm batch scripts for training on the LMU cluster
+* **Language:** Python
+* **Deep Learning Frameworks:** PyTorch, TorchVision
+* **Detection:** YOLOv6 via `torch.hub`
+* **Classification:** EfficientNetV2-S
+* **Image Processing & Data:** OpenCV, NumPy, Pillow, pandas, scikit-learn, tqdm
+* **Explainable AI (xAI):** Grad-CAM
+* **HPC / Cluster:** Slurm Batch Scripts (LMU Cluster)
 
-## Repository Layout
+---
+
+## Repository Structure
 
 ```text
 CVDL26-drop-table-catdogs/
-|-- AnimalRecognitionChallenge/
-|   `-- inference.py              # Official evaluation entry point
-|-- Final_Project/
-|   |-- detector.py               # YOLOv6 crop selection
-|   |-- animalClassifier.py       # EfficientNetV2-S breed classifier
-|   |-- train.py                  # Current crop-based training pipeline
-|   |-- traineffnet.py            # Alternate ImageFolder training baseline
-|   |-- evaluate.py               # Checkpoint inspection helper
-|   |-- compare_classifier.py     # ResNet18 diagnostic comparator
-|   |-- visualize_cam.py          # Grad-CAM heatmap generation
-|   |-- xAI_GradCam.py            # Legacy / experimental XAI helper
-|   |-- sorting_folder_images.py  # Merge class folders into flat images/
-|   `-- download_model_detector.py # Download YOLOv6s weights
-|-- Training_Material/
-|   |-- cat_api.py                # TheCatAPI data collection helper
-|   |-- kagel_dataset.py          # Kaggle cat-breed collection helper
-|   |-- kaggle_dog.py             # Stanford dogs collection helper
-|   |-- oxford_loader.py          # Oxford-IIIT Pet collection helper
-|   |-- extended_dogs_loader.py   # Stanford + local Dalmatian integration
-|   `-- jan_dalamtian.py          # Local Dalmatian import helper
-|-- notebooks/
-|   |-- 01_train_combined.ipynb
-|   `-- 02_train_species_split.ipynb
-|-- Final_Report/                # Final report LaTeX project
-|-- Preliminary_Report/          # Early report LaTeX project
-|-- LaTeXAuthor Guidelines for CVDL SEP Report/
-|-- run_training.sh              # Slurm training launcher
-|-- run_visualization_cam.sh     # Batch Grad-CAM launcher
-|-- requirements.txt
-|-- yolov6s.pt                   # Detector weights
-`-- README.md
+├── AnimalRecognitionChallenge/
+│   └── inference.py              # Official evaluation entry point
+├── Final_Project/
+│   ├── detector.py               # YOLOv6 bounding box selection
+│   ├── animalClassifier.py       # EfficientNetV2-S breed classifier
+│   ├── train.py                  # Active crop-based training pipeline
+│   ├── traineffnet.py            # Alternate ImageFolder baseline trainer
+│   ├── evaluate.py               # Helper script for checkpoint inspection
+│   ├── compare_classifier.py     # Diagnostic comparison with ResNet18
+│   ├── visualize_cam.py          # Grad-CAM heatmap generation
+│   ├── xAI_GradCam.py            # Experimental / legacy XAI helper
+│   ├── generate_xAI_panel.py     # Batch/panel generation for Grad-CAM
+│   ├── sorting_folder_images.py  # Merge class folders into flat images/
+│   └── download_model_detector.py # Download script for YOLOv6s weights
+├── Training_Material/
+│   ├── cat_api.py                # Data collection via TheCatAPI
+│   ├── kagel_dataset.py          # Kaggle cat-breeds downloader
+│   ├── kaggle_dog.py             # Stanford dogs downloader
+│   ├── oxford_loader.py          # Oxford-IIIT Pet Dataset integration
+│   ├── extended_dogs_loader.py   # Stanford + Dalmatian integration
+│   └── jan_dalamtian.py          # Local Dalmatian importer
+├── notebooks/
+│   ├── 01_train_combined.ipynb
+│   └── 02_train_species_split.ipynb
+├── Final_Report/                 # LaTeX project: Final report
+├── Preliminary_Report/           # LaTeX project: Intermediate report
+├── LaTeXAuthor Guidelines.../    # LMU guidelines for reports
+├── run_training.sh               # Slurm training launcher
+├── run_visualization_cam.sh      # Slurm Grad-CAM batch launcher
+├── requirements.txt              # Python dependencies
+├── yolov6s.pt                    # Detector weights
+└── README.md
+
 ```
+
+---
 
 ## How the Project Works
 
 ### Inference Flow
 
-`AnimalRecognitionChallenge/inference.py` is the submission-facing script.
-
 ```text
-input image
-  -> YOLOv6 detector
-  -> largest detected cat/dog crop
-  -> 224x224 resize
-  -> EfficientNetV2-S breed classifier
-  -> predicted breed index or -1
-```
+[ Input Image ]
+       │
+       ▼
+[ YOLOv6 Detector ]  ──►  (Selects largest detected animal)
+       │
+       ▼
+[ Crop & Resize (224x224) ]
+       │
+       ▼
+[ EfficientNetV2-S ]
+       │
+       ▼
+[ Output: Breed Index (0-19) or -1 ]
 
-The detector and classifier are separated so the classifier sees a standardized crop instead of the full background.
+```
 
 ### Training Flow
 
-The active training path is `Final_Project/train.py`.
+The active training pipeline is controlled via **`Final_Project/train.py`**:
 
-- It builds a cropped-animal dataset from `images/labels.csv`.
-- It caches detector crops to avoid repeated YOLOv6 calls.
-- It supports optional augmentation flags:
-  - `--mirror`
-  - `--blur`
-  - `--cropmix`
-- It supports optional class reweighting with `--balance_weights`.
-- It trains one classifier for cats and one classifier for dogs.
-- It saves checkpoints as `cat_scratch_<exp>.pth` and `dog_scratch_<exp>.pth`.
+* Constructs datasets from cropped animal images based on `images/labels.csv`.
+* Caches YOLOv6 crops to avoid repeated detector calls.
+* **Augmentations:** Supports optional flag parameters such as `--mirror`, `--blur`, and `--cropmix`.
+* **Class Reweighting:** Flag `--balance_weights` compensates for class imbalances.
+* Trains **two separate classifiers** (one specifically for cats, one for dogs).
+* Saves checkpoints as `cat_scratch_<exp>.pth` and `dog_scratch_<exp>.pth`.
 
-`Final_Project/traineffnet.py` is an earlier alternate experiment that trains a single 20-class classifier from an `ImageFolder` layout with weighted sampling and ImageNet initialization.
+> *Alternate Baseline:* `Final_Project/traineffnet.py` represents an earlier experiment that trains a single 20-class classifier from an `ImageFolder` structure with weighted sampling and ImageNet pretraining.
 
-### Data Preparation
+---
 
-The helper scripts in `Training_Material/` document how the dataset was assembled.
+## Data Preparation & Loaders
 
-- `cat_api.py` was used for early TheCatAPI collection.
-- `kagel_dataset.py`, `kaggle_dog.py`, and `oxford_loader.py` cover the main curated sources used later in the project.
-- `extended_dogs_loader.py` adds missing dog breeds and local Dalmatian images.
-- `jan_dalamtian.py` handles the Dalmatian-only local import.
+The helper scripts in `Training_Material/` document the step-by-step assembly of the training dataset:
 
-The report materials describe a project history that started with API-based collection, then moved toward larger curated sources and additional breed-specific patches to improve coverage. The current repository keeps the loaders and merge helpers used for that workflow.
+* **`cat_api.py`:** Early data collection via *TheCatAPI*.
+* **`oxford_loader.py`:** Integration of the *Oxford-IIIT Pet Dataset*.
+* **`kagel_dataset.py`:** Integration of the *Kaggle Cat-Breeds Dataset* via `kagglehub`.
+* **`kaggle_dog.py` & `extended_dogs_loader.py`:** Integration of the *Stanford Dogs Dataset* along with local additions for missing breeds.
+* **`jan_dalamtian.py`:** Imports specific local Dalmatian image data.
 
-## Setup
+> **History:** The project started with API-based downloads and expanded to larger curated sources with breed-specific additions. All loaders utilize a `get_next_counter` logic for sequential file naming (`00000.jpg`, `00001.jpg`, ...) to prevent data loss.
 
-1. Create and activate a Python virtual environment.
-2. Install dependencies:
+---
 
+## Optional and Disabled Experiments
+
+The repository retains experimental alternatives that are **disabled** in the submitted inference path:
+
+* **Secondary-box zero masking:** Zero-masking of secondary bounding boxes (commented out in `Final_Project/detector.py:131-146`). Can be re-enabled manually for comparisons, but masks all non-selected boxes without overlap protection. The submitted path uses an unmasked exact-box crop instead.
+* **Unified 20-class classifier:** `Final_Project/traineffnet.py` is a separate experiment with pretraining. It must not be confused with the species-routed submission model.
+* **Pretrained comparator:** `Final_Project/compare_classifier.py` implements a ResNet18 diagnostic comparator (integration in `inference.py` is commented out).
+* **Confusion matrix output:** The local inference harness imports the metric, but the output print statement is commented out.
+* **Grad-CAM utilities:** Provided via `generate_xAI_panel.py` and `visualize_cam.py` for offline diagnostics without affecting predictions.
+
+> *Note:* Adaptive box padding, a 40% masking bypass rule, rotation augmentation, perceptual hash groupings, and a train-validation gap stopping rule are not implemented in the active code.
+
+---
+
+## Reproducibility Status & Limitations
+
+* Detector weights (`yolov6s.pt`) are included, but the required classifier checkpoints for cats and dogs are absent from the standard checkout.
+* The exact final training corpus, source URL manifests, split manifests, raw training logs, prediction files, and end-to-end benchmark logs are not included in the repository.
+* The active split uses unseeded `random.shuffle`: repeated training runs will therefore use slightly different data distributions.
+
+---
+
+## Setup & Installation
+
+1. **Create & activate a virtual environment:**
+```bash
+python3 -m venv venv
+source venv/bin/activate  # Linux/macOS
+# venv\Scripts\activate   # Windows
+
+```
+
+
+2. **Install dependencies:**
 ```bash
 pip install -r requirements.txt
+
 ```
 
-3. Make sure the data folder expected by the training scripts exists:
 
+3. **Prepare directory structure:**
+Ensure the training data is structured as follows:
 ```text
 images/
-|-- labels.csv
-|-- 00000.jpg
-|-- 00001.jpg
-`-- ...
+├── labels.csv
+├── 00000.jpg
+├── 00001.jpg
+└── ...
+
 ```
 
-4. If you want to use the folder-based helpers, also prepare a `classes/` directory with one folder per breed.
 
-## Running Training
+*Optional:* If using folder-based helper scripts, prepare a `classes/` directory containing one subfolder per breed.
 
-The provided Slurm launcher is `run_training.sh`.
+---
+
+## Execution
+
+### Start Training
+
+**Directly via Python:**
+
+```bash
+python Final_Project/train.py \
+    --data_dir ./images \
+    --lr 1e-6 \
+    --epochs 100 \
+    --exp_name demo \
+    --balance_weights \
+    --mirror --blur --cropmix
+
+```
+
+**On the LMU Cluster (Slurm):**
 
 ```bash
 sbatch run_training.sh
+
 ```
 
-Notes:
+*Notes regarding the Slurm script:*
 
-- The script is written for the LMU cluster and contains a hardcoded project path.
-- The current array jobs sweep several learning-rate, epoch, and augmentation combinations.
-- Adjust the working directory and virtual environment path if you run it elsewhere.
+* The script is configured for the LMU cluster and contains project-specific paths.
+* Executes array jobs sweeping across various learning rates, epochs, and augmentation combinations.
 
-To run the training script directly:
+### Run Inference
 
-```bash
-python Final_Project/train.py --data_dir ./images --lr 1e-6 --epochs 100 --exp_name demo --balance_weights
-```
-
-Add `--mirror`, `--blur`, or `--cropmix` as needed.
-
-## Running Inference
-
-The challenge entry point is:
+Run the evaluation script on a folder containing test images:
 
 ```bash
 python AnimalRecognitionChallenge/inference.py --image-folder <path-to-test-images>
+
 ```
 
-Expected local files:
+**Required files in the execution directory:**
 
-- `yolov6s.pt` for the detector
-- `cat_scratch.pth` and `dog_scratch.pth` for the breed classifiers
+* `yolov6s.pt` (Detector weights; can be downloaded via `Final_Project/download_model_detector.py`)
+* `cat_scratch.pth` & `dog_scratch.pth` (Classifier weights)
 
-If `yolov6s.pt` is missing, `Final_Project/download_model_detector.py` can download it from the official YOLOv6 release.
+---
 
-## XAI / Visualization
+## xAI & Visualization (Grad-CAM)
 
-`Final_Project/visualize_cam.py` generates Grad-CAM heatmaps for a chosen image and checkpoint.
-
-Example:
+Generate Grad-CAM heatmaps to explain model decisions:
 
 ```bash
-python Final_Project/visualize_cam.py --checkpoint <path-to-checkpoint> --image <image-path> --species cat
+python Final_Project/visualize_cam.py \
+    --checkpoint <path-to-checkpoint> \
+    --image <image-path> \
+    --species cat
+
 ```
 
-The batch helper `run_visualization_cam.sh` repeatedly generates heatmaps for random images.
+For automated batch processing, the Slurm script `run_visualization_cam.sh` is available.
 
-## Notes For The Final Report
-
-- `Final_Report/` contains the LaTeX source for the final paper.
-- `Preliminary_Report/` keeps the earlier report version.
-- The final scientific report should describe the full pipeline, the experiments, the XAI analysis, and the team contribution appendix.
-
-## Remaining Cleanup Before Final Packaging
-
-- Remove or clearly quarantine legacy and debug code paths in the submission-facing scripts, especially any leftover comparison or placeholder branches.
-- Keep only the final training and inference paths in the shipped archive, or label backup scripts as archival so they are not mistaken for the primary workflow.
-- Verify the final submission still runs from a clean checkout with the documented weight files and no hidden local-path assumptions.
-- Keep a source URL list for any images collected from the internet, and record the exact preprocessing commands used to build `images/`.
+---

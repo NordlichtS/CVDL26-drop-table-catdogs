@@ -136,7 +136,7 @@ We applied Grad-CAM \cite{selvaraju2017grad} to the final convolutional feature 
 
 
 \subsubsection{Best-Case Evaluation: Discriminative Feature Localization}
-To evaluate spatial attention under optimal model convergence, we analyzed correctly predicted samples from our final fine-tuned model. As seen in the top panel of Figure \ref{fig:cam_bestcase}, a representative best-case scenario for a \texttt{Samoyed} instance is correctly classified. The overlay map reveals that peak activation intensity (red/orange) is strictly localized on the animal's central torso and thick coat structure, successfully ignoring background distractors such as the handler and fencing.
+To evaluate spatial attention under optimal model convergence, we analyzed correctly predicted samples from our final fine-tuned model. As seen in Figure \ref{fig:cam_bestcase}, a representative best-case scenario for a \texttt{Samoyed} instance is correctly classified. The overlay map reveals that peak activation intensity (red/orange) is strictly localized on the animal's central torso and thick coat structure, successfully ignoring background distractors such as the handler and fencing.
 
 \begin{figure}[htbp]
     \centering
@@ -146,7 +146,7 @@ To evaluate spatial attention under optimal model convergence, we analyzed corre
 \end{figure}
 
 \subsubsection{Worst-Case Evaluation: Contextual Shortcut Learning}
-To contrast this behavior, we conducted xAI analysis on an unregularized baseline model trained without spatial data augmentation. The middle panel of Figure \ref{fig:cam_worstcase} demonstrates a severe failure mode where the baseline network erroneously predicts \texttt{Pug} with a high confidence of 87.66\% on a non-Pug target. Spatial focus is almost entirely shifted away from the animal subject towards non-relevant background textures and floor boundaries, illustrating a classical case of shortcut learning \cite{geirhos2020shortcut}.
+To contrast this behavior, we conducted xAI analysis on an unregularized baseline model trained without spatial data augmentation. Figure \ref{fig:cam_worstcase} demonstrates a severe failure mode where the baseline network erroneously predicts \texttt{Pug} with a high confidence of 87.66\% on a non-Pug target. Spatial focus is almost entirely shifted away from the animal subject towards non-relevant background textures and floor boundaries, illustrating a classical case of shortcut learning \cite{geirhos2020shortcut}.
 
 \begin{figure}[htbp]
     \centering
@@ -156,7 +156,7 @@ To contrast this behavior, we conducted xAI analysis on an unregularized baselin
 \end{figure}
 
 \subsubsection{Impact of Data Scarcity: Human-Presence Bias}
-To investigate how limited training data diversity affects feature representation, we analyzed early model checkpoints trained on smaller dataset splits. As depicted in the bottom panel of Figure \ref{fig:cam_human_bias}, a striking failure mode occurs on a \texttt{Samoyed} instance. Despite the target dog being clearly visible, the model's spatial attention is concentrated entirely on the human handler's torso and attire, leading to a high-confidence misclassification as \texttt{Shiba\_Inu} (83.3\%). This illustrates the "Clever Hans" effect, where the network exploits shortcut features—such as the presence of human handlers—to minimize training loss.
+To investigate how limited training data diversity affects feature representation, we analyzed early model checkpoints trained on smaller dataset splits. As depicted in Figure \ref{fig:cam_human_bias}, a striking failure mode occurs on a \texttt{Samoyed} instance. Despite the target dog being clearly visible, the model's spatial attention is concentrated entirely on the human handler's torso and attire, leading to a high-confidence misclassification as \texttt{Shiba\_Inu} (83.3\%). This illustrates the "Clever Hans" effect, where the network exploits shortcut features—such as the presence of human handlers—to minimize training loss.
 
 \begin{figure}[htbp]
     \centering
@@ -212,4 +212,29 @@ Executing YOLOv6 inside training loops for every image across every epoch formed
 Updated PyTorch versions (2.6+) restricted checkpoint loading for complex metadata dictionaries; we resolved this by applying a targeted patch to \texttt{torch.load} setting \texttt{weights\_only=False} \cite{paszke2019pytorch}. Manual hyperparameter tuning was replaced by automated SLURM array scripts. Training from scratch was highly sensitive to learning rate selection; Cosine Annealing ($\eta_0 = 1.0 \times 10^{-3} \to \eta_{\text{min}} = 1.0 \times 10^{-6}$) provided necessary optimization momentum.
 
 \paragraph{Web Scraping Noise}
-Keyword scraping for rare breeds introduced semantic noise (e.g., queries for "Bombay" cats retrieved bottles of Bombay Sapphire Gin), requiring us to restrict dataset expansion to verified sources \cite{unsplash, pixabay}.
+Keyword scraping for rare breeds introduced semantic noise (e.g., queries for "Bombay" cats retrieved bottles of Bombay Sapphire Gin) and datasets with wrong classification (especially not pure breeds but mixed breeds), requiring us to restrict dataset expansion to verified sources \cite{unsplash, pixabay}.
+
+\paragraph{Diagnostic Occlusion and Zero-Out Masking}
+To rigorously evaluate whether the fine-grained classifier relies on true anatomical features rather than contextual shortcuts, we conducted an extreme occlusion test. By applying complete zero-out masking ($I_{\text{crop}} = \mathbf{0}$) to the input crops prior to the classification heads, we tested the network's behavior under total information loss. 
+
+Interestingly, the custom-trained EfficientNetV2-S models maintained confident predictions for specific classes (e.g., predicting \textit{Pug} with over $14\%$ confidence on blank black inputs). This diagnostic result indicates the presence of uncalibrated logit priors and contextual overfitting, confirming that fine-grained classification from scratch heavily exploits global background distribution artifacts when species-specific visual features are absent.
+
+\begin{figure}[t]
+    \centering
+    \begin{subfigure}[b]{0.48\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{../CAM_Heat_Map/compare_crop_pug_without.png}
+        \caption{Unmasked Target Crop \\ (\textbf{Pred:} Pug, 87.2\%)}
+        \label{fig:occlusion_a}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.48\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{../CAM_Heat_Map/compare_crop_Pug.png}
+        \caption{Total Zero-Out Masking \\ (\textbf{Pred:} Pug, 14.4\%)}
+        \label{fig:occlusion_b}
+    \end{subfigure}
+    
+    \caption{Diagnostic Occlusion Test. (a) Standard forward execution on a cropped input. (b) Applying complete spatial zero-out masking ($I_{\text{crop}} = \mathbf{0}$) to evaluate feature dependence. The persistent baseline probability for \textit{Pug} confirms the presence of uncalibrated class priors and background shortcut learning when target features are entirely absent.}
+    \label{fig:zero_out_diagnostic}
+\end{figure}

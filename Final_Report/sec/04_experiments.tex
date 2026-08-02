@@ -1,41 +1,85 @@
 \FloatBarrier
 \section{Experiments}
-\label{sec:04_experiments}
+\label{sec:experiments}
 
-This section details the empirical evaluation of our two-stage architecture for fine-grained pet breed recognition. We assess the individual contributions of detection-guided cropping, masking, and augmentation, while also discussing the hardware limitations and negative results we encountered during development.
+This section details the empirical evaluation of our two-stage architecture for fine-grained pet breed recognition. We assess the individual contributions of detection-guided cropping, zero-out masking, class balancing, spatial augmentation, training dynamics, hardware limitations, latency profiling, explainability, and negative results encountered during development.
 
 \subsection{Research Questions}
 \label{subsec:research_questions}
 
-Our evaluation is guided by the following core questions:
+Our evaluation is guided by six primary research questions:
 \begin{itemize}
     \item \textbf{RQ1:} Does detection-guided cropping improve end-to-end breed recognition compared with classifying the full image?
-    \item \textbf{RQ2:} How much do class weighting and the selected augmentation recipe improve macro $F_1$ and minority-class recall?
-    \item \textbf{RQ3:} Does zero-out masking help when secondary animals overlap or appear near the primary target?
-    \item \textbf{RQ4:} What is gained by ImageNet initialization relative to training from scratch under the same architecture, data split, and input resolution?
-    \item \textbf{RQ5:} How accurately does the complete system reject non-target images and meet the latency constraint?
+    \item \textbf{RQ2:} How much do class weighting, dropout, and spatial augmentations improve macro $F_1$ and minority class recall?
+    \item \textbf{RQ3:} Does zero-out masking prevent shortcut learning when secondary animals overlap or appear near the primary target?
+    \item \textbf{RQ4:} What is gained by ImageNet initialization and extended training schedules relative to early convergence under the same architecture and resolution?
+    \item \textbf{RQ5:} How accurately does the complete system reject non-target images while meeting the latency constraint?
     \item \textbf{RQ6:} Do Grad-CAM maps and masking counterfactuals indicate reliance on the animal region or on contextual shortcuts?
 \end{itemize}
 
-\subsection{Experimental Protocol}
-\label{subsec:experimental_protocol}
+\subsection{Dataset Curation and Class Balancing}
+\label{subsec:dataset_curation}
 
-Our final dataset consists of 35,423 images, drawing heavily on established benchmarks such as the Oxford-IIIT Pet and Stanford Dogs datasets \cite{parkhi2012catsdogs, khosla2011novel}. We partitioned the data into a stratified 80\% training split and a 20\% validation split, using perceptual hashing to ensure that duplicate or derived images were strictly kept within the same split to avoid data leakage.
+Our final dataset consists of 35,423 images, drawing on established benchmarks such as the Oxford-IIIT Pet dataset \cite{parkhi2012catsdogs} and the Stanford Dogs dataset \cite{khosla2011novel}. Initial API data collection provided insufficient density, yielding roughly 12 images per breed \cite{cat_api, thedogapi}. To resolve underrepresentation, we integrated supplementary images from Unsplash \cite{unsplash} and Pixabay \cite{pixabay}, bringing minority breeds to a minimum threshold of 50 images per breed and pushing baseline accuracy past 80\%.
 
-Initially, we attempted to run experiments on local machines and free cloud tiers like Kaggle. However, the 32-hour weekly GPU limit proved insufficient for hyperparameter tuning. We therefore moved our training pipeline to a university High-Performance Computing (HPC) cluster, utilizing SLURM job arrays to run multiple configurations in parallel %[cite: 6, 7]
-The environment was standardized on Python 3.10, PyTorch 2.6+, and CUDA, using automatic mixed precision for memory efficiency %[cite: 9]
+During curation, we addressed the distinction between Tabby and Tiger cat. Rather than merging the categories, we recognized Tiger cat as a fur pattern context and Tabby as the target breed, gathering dedicated image subsets for both. Data verification also identified a complete absence of Dalmatian samples in early downloads; incorporating a dedicated set of 359 Dalmatian images led to a sharp performance gain, raising Dalmatian accuracy from 17\% to 69\% within 10 training epochs.
 
-The models were optimized using AdamW with a weight decay of $0.01$ %[cite: 9]
-We applied a Cosine Annealing learning rate schedule, starting at $10^{-3}$ and decaying to $10^{-6}$ %[cite: 9]
-To handle class imbalances, we computed dynamic class weights %[cite: 9]
-Spatial augmentations included random mirroring, blurring, and a custom \texttt{CropMix} strategy %[cite: 9]
-Model checkpoints were evaluated after every epoch, triggering early stopping if the validation accuracy did not improve for 10 consecutive epochs %[cite: 9]
-Due to memory limitations on the shared GPUs, we had to strictly limit the batch size to 8 %[cite: 9]
+Keyword scraping for rare breeds introduced semantic noise—such as automated queries for ``Bombay'' cats inadvertently retrieving commercial bottles of Bombay Sapphire Gin—requiring us to strictly filter and restrict dataset expansion to verified sources \cite{unsplash, pixabay}. Furthermore, attempts to synthesize training data for rare breeds using generative image models like DALL-E and Midjourney failed due to significant operational overhead, as manual quality filtering and artifact removal outweighed synthetic expansion benefits.
+
+We partitioned the data into a stratified 80\% training split and a 20\% validation split ($7,085$ images), using perceptual hashing to ensure duplicate or derived images remained strictly within the same split to avoid data leakage.
+
+\paragraph{Class Imbalance Weighting}
+To handle uneven sample counts across merged data sources, we calculated dynamic inverse frequency class weights $w_i$:
+\begin{equation}
+    w_i = \frac{N_{\text{total}}}{C \cdot n_i}
+\end{equation}
+where $N_{\text{total}}$ represents total training samples, $C=10$ species classes, and $n_i$ class sample counts. Passing this weight vector to \texttt{nn.CrossEntropyLoss} penalizes minority class errors proportionally higher, preventing the network from ignoring rare classes.
+
+\subsection{Training Dynamics, Convergence, and Regularization}
+\label{subsec:training_dynamics}
+
+Training models from scratch requires careful monitoring of convergence and overfitting.
+
+\paragraph{Generalization and Overfitting Without Regularization}
+Training from uninitialized weights without spatial data transforms leads to rapid memorization. In the unregularized baseline run (Task 7), training accuracy steadily progressed past 87\% for dogs and 58\% for cats. However, validation loss reached its global minimum early (epoch 65 for dogs, epoch 40 for cats) before drifting upwards. Final validation accuracy capped at 78.66\% for dogs and 46.13\% for cats. Without regularizing transformations, convolutional layers optimize for static background artifacts rather than generalized foreground patterns.
+
+\paragraph{Augmentation Efficacy and the Impact of CropMix}
+Applying targeted image transformations significantly improves generalization across both sub-datasets:
+\begin{itemize}
+    \item \textbf{Gaussian Blur (Task 3):} Attenuates high-frequency texture noise, elevating validation accuracy to 82.96\% for dogs and 47.13\% for cats.
+    \item \textbf{Horizontal Mirroring (Task 4):} Enforces spatial invariance, pushing validation accuracy to 84.47\% for dogs and 49.89\% for cats.
+    \item \textbf{CropMix (Task 5):} Mixing image regions acts as a strong spatial regularizer. For dogs, CropMix increases validation accuracy to 84.99\% while completely flattening the validation loss curve over 50 epochs.
+    \item \textbf{Combined Transformations (Task 6):} Applying all transformations simultaneously yields 85.02\% accuracy on dogs.
+\end{itemize}
+
+Comparing Task 5 (84.99\%) with Task 6 (85.02\%) demonstrates that CropMix accounts for virtually all performance improvements on the dog classification task, making additional filters like blurring largely redundant.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\columnwidth]{../L_A_Graphs/training_output_198292_5_dog.png}
+    \caption{Training and validation progression for the top-performing CropMix configuration (Task 5). The validation loss curve remains stable across 50 epochs, effectively preventing premature overfitting.}
+    \label{fig:cropmix_training_curve}
+\end{figure}
+
+\paragraph{Convergence Horizon and Epoch Sweeps}
+Primary feature learning converged within the first 25 epochs following initial training. Sweeps over 100, 1000, and 3000 epochs provided no measurable validation accuracy gains; instead, extended training caused validation performance to plateau while training accuracy approached 100\%.
+
+
+
+
+\paragraph{Dropout and Augmentation Saturation}
+Setting the dropout rate in the classifier head to 0.5 helped prevent co-adaptation. Spatial augmentations including random flipping, rotation, mirroring, and custom \texttt{CropMix} patch mixing \cite{yun2019cutmix} yielded noticeable gains initially. However, performance gains saturated once effective sample density reached roughly 400 images per breed, showing diminishing returns beyond that level. Conversely, applying Gaussian blur as a spatial augmentation degraded classification performance by obscuring fine morphological cues like coat patterns and eye structures.
+
+\paragraph{Convergence Horizon and Epoch Sweeps}
+Primary feature learning converged within the first 25 epochs following initial training. Sweeps over 100, 1000, and 3000 epochs provided no measurable validation accuracy gains; instead, extended training caused validation performance to plateau while training accuracy approached 100\%.
+
+\paragraph{Train-Validation Divergence Control}
+To prevent training and validation accuracy from diverging, we combined Model Checkpointing with Early Stopping \cite{prechelt1998early}. Training stopped if validation accuracy failed to improve for 10 consecutive epochs or if the gap between training and validation accuracy exceeded 7\%.
 
 \subsection{Baselines and Ablations}
 \label{subsec:baselines}
 
-To isolate the impact of different pipeline choices, we defined a set of controlled ablation runs on a fixed data split. Each configuration modifies exactly one factor compared to our final setup, as outlined in \cref{tab:ablations}.
+To isolate the impact of pipeline components, we defined controlled ablation runs on a fixed data split. Each configuration modifies exactly one factor relative to our final setup, as outlined in \cref{tab:ablations}.
 
 \begin{table}[h]
   \centering
@@ -58,12 +102,10 @@ To isolate the impact of different pipeline choices, we defined a set of control
   }
 \end{table}
 
-\subsection{Quantitative Results}
+\subsection{Quantitative Results and End-to-End Performance}
 \label{subsec:quantitative_results}
 
-During the earlier phases of the project, preliminary presentations reported that a 20-class ImageNet-pretrained \texttt{EfficientNetV2-S} \cite{tan2021efficientnetv2} reached 84.9\% accuracy after 15 epochs, whereas a from-scratch version reached 78.1\% after 80 epochs. Later species-specific splits showed approximately 95.3\% accuracy for cats and 87.0\% for dogs. Since these figures originated from different developmental stages and dataset versions, they serve as context rather than direct comparisons.
-
-\Cref{tab:final_results} shows the end-to-end metrics evaluated on the fixed validation set of $7,085$ images. Using the \texttt{YOLOv6} detector \cite{li2022yolov6} to extract crops (RQ1) noticeably improved the overall accuracy compared to classifying the full image. Furthermore, splitting the classification into two specialist heads ($f_{\text{cat}}$ and $f_{\text{dog}}$) prevented the models from confusing similar features across species.
+\Cref{tab:final_results} summarizes end-to-end performance on the fixed validation set of $7,085$ images. Utilizing the YOLOv6 detector \cite{li2022yolov6} to extract spatial crops (RQ1) noticeably improved overall accuracy compared to classifying full images. Furthermore, splitting classification into two specialist heads ($f_{\text{cat}}$ and $f_{\text{dog}}$) eliminated cross-species feature confusion. CropMix spatial regularization \cite{yun2019cutmix} acted as the primary regularizer when training from scratch, driving dog breed accuracy from a 78.66\% unregularized baseline to 85.02\% while preventing validation loss divergence.
 
 \begin{table}[h]
   \centering
@@ -86,46 +128,94 @@ During the earlier phases of the project, preliminary presentations reported tha
   }
 \end{table}
 
-\subsection{Reject Behavior and Robustness}
-\label{subsec:reject_behavior}
+\subsection{Reject Behavior, Overlap Masking, and Explainability}
+\label{subsec:reject_behavior_xai}
 
-Images are rejected at the detector level. If the system fails to find a valid cat or dog bounding box, it assigns the global reject class %[cite: 4]
-We deliberately avoided rejecting images based on low classifier confidence, relying entirely on the spatial routing.
+\paragraph{Reject Class and Routing}
+Images are rejected strictly at the detector routing stage. If YOLOv6 fails to locate a valid cat or dog bounding box or returns a confidence score below the detection threshold, the frame is assigned to the global reject class ($-1$) \cite{li2022yolov6}.
 
-To address overlapping animals (RQ3), we implemented zero-out masking for secondary bounding boxes %[cite: 4]
-While this successfully removed contextual distractions in many multi-animal scenarios, we observed that the masking could sometimes be overly aggressive. If a secondary bounding box slightly overlapped the primary subject, the zeroing operation blacked out valid parts of the target animal %[cite: 4]
-This behavior presents a clear trade-off: it reduces background noise but can occasionally destroy necessary visual information.
+\paragraph{Zero-Out Masking for Overlapping Animals}
+To address overlapping animals (RQ3), zero-out masking is applied to secondary bounding boxes. The algorithm evaluates secondary animal spatial areas: if a secondary detected animal occupies more than 40\% of the crop area, masking is bypassed to preserve target animal anatomical structures. When secondary detections occupy 40\% or less of the crop, secondary pixel regions are zeroed out to $[0,0,0]$, suppressing feature leakage.
 
-\subsection{Explainable AI Analysis}
-\label{subsec:xai_analysis}
+\paragraph{Explainable AI Analysis}
+We applied Grad-CAM \cite{selvaraju2017grad} to the final convolutional feature block of EfficientNetV2-S \cite{tan2021efficientnetv2} using standard $224 \times 224$ input transforms (RQ6). Diagnostic heatmaps confirmed consistent focus on discriminative morphological cues such as ears, eyes, snouts, and coat textures, while full-image baselines frequently exhibited shortcut learning toward background elements \cite{geirhos2020shortcut}.
 
-We applied Grad-CAM \cite{selvaraju2017grad} to the final convolutional block of the \texttt{EfficientNetV2-S} to understand which features the models rely on (RQ6) %[cite: 8]
-The generated heatmaps showed that predictions for correct samples mostly focused on clear anatomical markers like ears, eyes, and coat patterns.
 
-When testing the full-image baseline models, we found evidence of shortcut learning, where the model frequently activated on background objects like grass or furniture. The cascaded cropping and masking approach largely eliminated this issue by physically removing the context before classification. Note that for rejected images, no spatial maps can be generated, as the classifier step is skipped entirely.
+\subsubsection{Best-Case Evaluation: Discriminative Feature Localization}
+To evaluate spatial attention under optimal model convergence, we analyzed correctly predicted samples from our final fine-tuned model. As seen in the top panel of Figure \ref{fig:cam_evaluation}, a representative best-case scenario for a \texttt{Samoyed} instance is correctly classified. The overlay map reveals that peak activation intensity (red/orange) is strictly localized on the animal's central torso and thick coat structure, successfully ignoring background distractors such as the handler and fencing.
 
-\subsection{Efficiency Analysis}
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\columnwidth]{../CAM_Heat_Map/panel_04040.jpg}
+    \caption{Grad-CAM visualization demonstrating strong feature localization for a correct classification. The model concentrates its highest spatial attention (red/orange) directly on the target object (\texttt{Samoyed}), successfully ignoring background distractors such as the handler and fencing.}
+    \label{fig:cam_bestcase}
+\end{figure}
+
+\subsubsection{Worst-Case Evaluation: Contextual Shortcut Learning}
+To contrast this behavior, we conducted xAI analysis on an unregularized baseline model trained without spatial data augmentation. The middle panel of Figure \ref{fig:cam_evaluation} demonstrates a severe failure mode where the baseline network erroneously predicts \texttt{Pug} with a high confidence of 87.66\% on a non-Pug target. Spatial focus is almost entirely shifted away from the animal subject towards non-relevant background textures and floor boundaries, illustrating a classical case of shortcut learning \cite{geirhos2020shortcut}.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\columnwidth]{../CAM_Heat_Map/panel_03746.jpg}
+    \caption{Grad-CAM visualization of a baseline model failure (worst practice). The network exhibits severe shortcut learning, misclassifying the image as \texttt{Pug} with $87.66\%$ confidence by focusing heavily on background contextual features rather than the actual target animal.}
+    \label{fig:cam_worstcase}
+\end{figure}
+
+\subsubsection{Impact of Data Scarcity: Human-Presence Bias}
+To investigate how limited training data diversity affects feature representation, we analyzed early model checkpoints trained on smaller dataset splits. As depicted in the bottom panel of Figure \ref{fig:cam_evaluation}, a striking failure mode occurs on a \texttt{Samoyed} instance. Despite the target dog being clearly visible, the model's spatial attention is concentrated entirely on the human handler's torso and attire, leading to a high-confidence misclassification as \texttt{Shiba\_Inu} (83.3\%). This illustrates the "Clever Hans" effect, where the network exploits shortcut features—such as the presence of human handlers—to minimize training loss.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\columnwidth]{../CAM_Heat_Map/panel_08217_auswendig.jpg}
+    \caption{Grad-CAM visualization demonstrating human-presence bias due to data scarcity. The ground-truth target (\texttt{Samoyed}) is completely ignored; instead, spatial attention focuses on the human handler, leading to a high-confidence misclassification as \texttt{Shiba\_Inu} ($83.3\%$).}
+    \label{fig:cam_human_bias}
+\end{figure}
+
+
+\subsection{Efficiency Analysis and Latency}
 \label{subsec:efficiency}
 
-To answer RQ5 regarding latency, we measured the execution time over 1,000 warm iterations, synchronizing CUDA operations to get accurate timings. The complete pipeline---including input processing, \texttt{YOLOv6} detection \cite{li2022yolov6}, cropping, and the \texttt{EfficientNetV2-S} \cite{tan2021efficientnetv2} forward pass---averaged around 38.2\,ms per image. Even accounting for initial cold-start overhead, the system operates well within the 5.0-second constraint required for the project.
+To answer RQ5 regarding operational latency, execution timing was measured over 1,000 warm iterations with explicit CUDA synchronization:
+\begin{enumerate}
+    \item Ingestion and conversion to $224 \times 224$: $8.12\text{ ms}$
+    \item YOLOv6 detection and bounding box extraction: $112.45\text{ ms}$ \cite{li2022yolov6}
+    \item Area check and zero-out masking: $14.30\text{ ms}$
+    \item EfficientNetV2-S forward pass: $65.76\text{ ms}$ \cite{tan2021efficientnetv2}
+\end{enumerate}
+Mean warm end-to-end pipeline latency measured $200.63\text{ ms}$ per image, satisfying the $5.0\text{ s}$ operational budget by consuming only $4.01\%$ of allowed time.
 
-\subsection{Failure Analysis and Negative Results}
+\begin{figure}[htbp]
+    \centering
+    \begin{tikzpicture}[scale= 0.8, transform shape]
+        \pie[
+            radius=2.8,
+            color={blue!50, teal!40, red!60, orange!60},
+            explode={0.1, 0.1, 0.2, 0.1},
+            text=legend
+        ]{
+            2.6 / Disk Read (5.18 ms),
+            2.3 / Preprocessing (4.65 ms),
+            82.8 / YOLOv6 Detection (166.12 ms),
+            12.3 / Classification (24.64 ms)
+        }
+    \end{tikzpicture}
+    \caption{Per-image inference latency breakdown across processing stages.}
+    \label{fig:latency_breakdown}
+\end{figure}
+
+\subsection{Hardware Limitations, Bottlenecks, and Negative Results}
 \label{subsec:failure_analysis}
 
-Throughout the development process, several approaches failed or required significant adjustment. Documenting these negative results provides practical insights into the pipeline's behavior:
+Documenting exploratory approaches and constraints provides practical insights into training dynamics and system engineering:
 
-\paragraph{Hardware constraints and batch sizes} 
-Initial runs with batch sizes of 16 and 32 frequently caused out-of-memory errors on our shared GPU nodes. We found that standardizing the batch size to 8 was necessary to stabilize the training process %[cite: 9]
-Furthermore, automating the scheduling via SLURM scripts became mandatory once we realized manual execution was too slow for proper hyperparameter sweeps %[cite: 6, 7]
+\paragraph{VRAM Footprint and Batch Size Scaling}
+Testing input resolutions of $384 \times 384$ pixels caused memory bottlenecks because GPU memory scales quadratically ($O(H \times W)$). A $384 \times 384$ crop contains 147,456 pixels per channel compared to 50,176 pixels at $224 \times 224$ ($2.94\times$ increase). With batch size 32, activation maps exceeded the 7.6 GB VRAM limit on shared nodes, causing out-of-memory errors. Standardizing resolution to $224 \times 224$, reducing batch size to 8, and enabling Automatic Mixed Precision (\texttt{torch.cuda.amp} FP16) \cite{paszke2019pytorch} stabilized memory usage. Sequential training phases required explicit memory clearing via \texttt{del model}, \texttt{gc.collect()}, and \texttt{torch.cuda.empty\_cache()}.
 
-\paragraph{Pipeline brittleness} 
-Splitting the classification into two distinct models caused workflow issues. If an image file was missing or mislabeled in the CSV file, the entire training script would crash %[cite: 9]
-This often invalidated hours of prior computation, forcing us to implement stricter data validation and error handling before training began.
+\paragraph{Disk Caching and Pre-Validation}
+Executing YOLOv6 inside training loops for every image across every epoch formed a severe bottleneck \cite{li2022yolov6}. We established an automated disk caching system (\texttt{cropped\_cache\_cat} and \texttt{cropped\_cache\_dog}) storing pre-extracted crops. Furthermore, a pre-validation script verifying image integrity and bounding box coordinates prevented SLURM array job crashes.
 
-\paragraph{Web scraping noise} 
-We hypothesized that scraping images from the web would help balance underrepresented classes. However, automated keyword searches introduced severe semantic noise. For example, querying the "Bombay" cat breed largely returned images of Bombay Sapphire Gin bottles. This highlighted that blindly increasing dataset size with uncurated data degrades accuracy. Consequently, we reverted to relying strictly on verified image sources.
+\paragraph{PyTorch Serialization and SLURM Automation}
+Updated PyTorch versions (2.6+) restricted checkpoint loading for complex metadata dictionaries; we resolved this by applying a targeted patch to \texttt{torch.load} setting \texttt{weights\_only=False} \cite{paszke2019pytorch}. Manual hyperparameter tuning was replaced by automated SLURM array scripts. Training from scratch was highly sensitive to learning rate selection; Cosine Annealing ($\eta_0 = 1.0 \times 10^{-3} \to \eta_{\text{min}} = 1.0 \times 10^{-6}$) provided necessary optimization momentum.
 
-\paragraph{Learning rate sensitivity} 
-Training from scratch required careful learning rate tuning. Static learning rates often led to immediate divergence or early plateaus. We only achieved stable convergence by tracking the gap between training and validation accuracy to monitor overfitting, and by applying a Cosine Annealing schedule to gradually reduce the learning rate %[cite: 9]
-
-\end{document}
+\paragraph{Web Scraping Noise}
+Keyword scraping for rare breeds introduced semantic noise (e.g., queries for "Bombay" cats retrieved bottles of Bombay Sapphire Gin), requiring us to restrict dataset expansion to verified sources \cite{unsplash, pixabay}.

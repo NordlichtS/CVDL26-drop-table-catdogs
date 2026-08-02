@@ -1,2 +1,15 @@
 \section{Conclusions}
-\label{sec:conclusion}
+\label{sec:05_conclusions}
+
+We developed and evaluated a two-stage cascade system for fine-grained recognition of ten cat and ten dog categories, augmented with an explicit global reject output for out-of-distribution or non-target images. By combining a COCO-pretrained YOLOv6 detector for spatial localization and largest-animal filtering with zero-out masking and species-specific EfficientNetV2-S classifiers trained from scratch, the system effectively mitigates background context leakage.
+
+\paragraph{Empirical Insights and Training Dynamics}
+Our evaluation of training dynamics across multiple augmentation and regularization strategies revealed several key takeaways regarding fine-grained learning from scratch:
+\begin{itemize}
+    \item \textbf{Regularization vs. Memorization:} Training unregularized backbones leads to rapid overfitting where validation loss diverges while training accuracy exceeds $87\%$. Spatial patch-mixing techniques like CropMix proved to be the most decisive regularizer, driving a performance increase of over $6\%$ on complex categories (e.g., boosting dog classification accuracy from $78.66\%$ to $84.99\%$ - $85.02\%$) while completely stabilizing the validation loss curve.
+    \item \textbf{Domain Complexity Disparity:} A persistent performance gap emerged between dog breeds ($78.66\%$–$85.02\%$) and cat breeds ($41.51\%$–$49.89\%$). This highlights that structural variations in dogs are easily isolated by standard convolutional backbones, whereas subtle, fine-grained feline characteristics require specialized feature extraction or pre-training rather than basic spatial augmentation alone.
+    \item \textbf{Operational Efficiency:} Under the locked evaluation protocol, the system achieved a robust overall accuracy of $92.35\%$ (with peak backbone performance reaching $95.38\%$ on isolated species heads), a macro $F_1$ score of $0.924$, and a mean warm end-to-end latency of $200.63\text{ ms}$ per image, safely consuming only $4.01\%$ of the $5.0$-second runtime budget.
+\end{itemize}
+
+\paragraph{Limitations and Future Work}
+The primary limitations of this study stem from detector dependency, data ambiguity inherent in multi-source web curation, and the absence of explicit confidence calibration. Future work should focus directly on addressing these bottlenecks through detector calibration, improved duplicate-aware data curation pipelines, or evaluating out-of-distribution robustness against broader domain shifts.
